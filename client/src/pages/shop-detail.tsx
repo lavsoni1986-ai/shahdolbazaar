@@ -1,184 +1,267 @@
-import { Link, useParams } from "wouter";
-import { SHOPS, CATEGORIES } from "@/lib/data";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, MapPin, Phone, MessageCircle, Share2, ArrowLeft, Clock, CheckCircle } from "lucide-react";
-import NotFound from "./not-found";
+import { useEffect, useMemo, useState } from "react";
+import { useRoute } from "wouter";
+import { Phone, MapPin, MessageCircle, Star } from "lucide-react";
+import { addReview, getReviews } from "@/lib/reviews";
+
+// Helper to clean phone numbers
+function normalizePhone(raw: string) {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 10) return `91${digits}`;
+  return digits;
+}
+
+type Review = {
+  id?: string;
+  name: string;
+  rating: number;
+  comment: string;
+};
 
 export default function ShopDetail() {
-  const { id } = useParams();
-  const shop = SHOPS.find(s => s.id === id);
+  const [, params] = useRoute("/shop/:id");
+  const id = params?.id ?? "";
 
-  if (!shop) return <NotFound />;
+  /* ---------- STATE ---------- */
+  const [shop, setShop] = useState<any>(null);
+  const [loadingShop, setLoadingShop] = useState(true);
 
-  const category = CATEGORIES.find(c => c.slug === shop.category);
-  const whatsappMessage = encodeURIComponent(`Hi ${shop.name}, I found your shop on ShahdolBazaar. I would like to enquire about...`);
-  const whatsappLink = `https://wa.me/${shop.phone}?text=${whatsappMessage}`;
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + " " + shop.address)}`;
+  // Reviews State
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  // Form State
+  const [name, setName] = useState("");
+  const [rating, setRating] = useState<number | "">("");
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  /* ---------- 1️⃣ LOAD DATA FROM API (UPDATED) ---------- */
+  useEffect(() => {
+    if (!id) return;
+    setLoadingShop(true);
+
+    // ✅ Asli Server Call
+    fetch(`/api/shops/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Shop not found");
+        return res.json();
+      })
+      .then((data) => {
+        setShop(data);
+        // SEO Title Set karna
+        document.title = `${data.name} | ShahdolBazaar`;
+      })
+      .catch((err) => {
+        console.error("Error fetching shop:", err);
+        setShop(null);
+      })
+      .finally(() => setLoadingShop(false));
+
+    // Reviews abhi ke liye dummy/lib se aa rahe hain (Baad me API banayenge)
+    getReviews(id)
+      .then((data: any) => setReviews(data))
+      .catch(() => setReviews([]))
+      .finally(() => setLoadingReviews(false));
+  }, [id]);
+
+  /* ---------- HELPER LOGIC ---------- */
+  const averageRating = useMemo(() => {
+    // Agar shop ke paas API se rating aayi hai to wo use karo, nahi to calculate karo
+    if (shop?.avgRating) return shop.avgRating;
+
+    if (reviews.length === 0) return "0.0";
+    const total = reviews.reduce((sum, r) => sum + Number(r.rating), 0);
+    return (total / reviews.length).toFixed(1);
+  }, [reviews, shop]);
+
+  /* ---------- LOADING & ERROR STATES ---------- */
+  if (loadingShop)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
+
+  if (!shop)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          Shop Nahi Mili 😕
+        </h2>
+        <p className="text-slate-500">
+          Shayad ye dukan hata di gayi hai ya ID galat hai.
+        </p>
+        <a href="/" className="mt-4 text-orange-600 font-bold hover:underline">
+          Go Home
+        </a>
+      </div>
+    );
+
+  /* ---------- LINKS PREPARATION ---------- */
+  const normalized = normalizePhone(shop.mobile || shop.phone); // API sends 'mobile'
+
+  const whatsappHref = normalized
+    ? `https://wa.me/${normalized}?text=${encodeURIComponent(
+        `Hello ${shop.name}, main ShahdolBazaar se enquiry karna chahta hoon...`,
+      )}`
+    : "#";
+
+  // ✅ Google Maps Link Fixed
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${shop.name} ${shop.address || "Shahdol"}`,
+  )}`;
+
+  /* ---------- SUBMIT REVIEW ---------- */
+  const submitReview = async () => {
+    if (!name || !rating || !comment || submitting) return;
+
+    setSubmitting(true);
+    try {
+      await addReview(id, name, Number(rating), comment);
+      setName("");
+      setRating("");
+      setComment("");
+      const updated = await getReviews(id);
+      setReviews(updated);
+      alert("Review submit ho gaya!");
+    } catch (e) {
+      alert("Error submitting review");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      {/* Banner */}
-      <div className="relative h-64 md:h-80 lg:h-96 w-full overflow-hidden">
-        <img 
-          src={shop.image} 
-          alt={shop.name} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
-        <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
-          <Link href={`/category/${shop.category}`}>
-            <a className="inline-flex items-center text-white/90 hover:text-white bg-black/20 backdrop-blur px-3 py-1.5 rounded-full text-sm font-medium transition-colors">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back to {category?.name}
-            </a>
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* --- MAIN CARD --- */}
+        <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200">
+          <div className="flex flex-col md:flex-row">
+            {/* IMAGE SECTION */}
+            <div className="md:w-1/2 h-72 md:h-96 overflow-hidden bg-slate-100 relative">
+              <img
+                src={
+                  shop.image ||
+                  "https://via.placeholder.com/600x400?text=No+Image"
+                }
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://via.placeholder.com/600x400?text=Shop+Image";
+                }}
+                className="w-full h-full object-cover"
+                alt={shop.name}
+              />
+              {shop.isFeatured && (
+                <span className="absolute top-4 left-4 bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                  FEATURED
+                </span>
+              )}
+            </div>
 
-      <div className="container mx-auto px-4 -mt-20 relative z-20">
-        <div className="bg-card rounded-3xl shadow-xl border p-6 md:p-8">
-          <div className="flex flex-col md:flex-row gap-6 md:items-start justify-between">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className={`${category?.color} border-0`}>{category?.name}</Badge>
-                {shop.featured && (
-                   <Badge variant="outline" className="border-orange-200 text-orange-600 bg-orange-50">Verified Business</Badge>
-                )}
+            {/* DETAILS SECTION */}
+            <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-center">
+              <div className="inline-block self-start px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full uppercase mb-3">
+                {shop.category}
               </div>
-              
-              <h1 className="text-3xl md:text-5xl font-bold text-foreground">{shop.name}</h1>
-              
-              <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-muted-foreground">
-                <div className="flex items-center gap-1 text-orange-600 font-bold">
-                  <Star className="h-5 w-5 fill-current" />
-                  <span>{shop.rating}</span>
-                  <span className="text-muted-foreground font-medium ml-1">({shop.reviews} reviews)</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-5 w-5" />
-                  <span>{shop.address}</span>
+
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-2">
+                {shop.name}
+              </h1>
+
+              <div className="flex items-center mb-4 text-orange-500 font-bold text-lg">
+                <Star size={20} fill="currentColor" className="mr-1" />
+                {averageRating}
+                <span className="text-slate-400 font-normal text-sm ml-2">
+                  ({reviews.length} reviews)
+                </span>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed mb-8">
+                {shop.description || "No description available."}
+              </p>
+
+              {/* ACTION BUTTONS */}
+              <div className="space-y-3">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1"
+                >
+                  <MessageCircle size={22} /> Chat on WhatsApp
+                </a>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {normalized ? (
+                    <a
+                      href={`tel:${normalized}`}
+                      className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition-colors"
+                    >
+                      <Phone size={18} /> Call
+                    </a>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex items-center justify-center gap-2 border border-slate-100 bg-slate-50 text-slate-300 font-bold py-3 rounded-xl cursor-not-allowed"
+                    >
+                      <Phone size={18} /> No Number
+                    </button>
+                  )}
+
+                  <a
+                    href={mapsHref}
+                    target="_blank"
+                    className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition-colors"
+                  >
+                    <MapPin size={18} /> Location
+                  </a>
                 </div>
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 min-w-[250px]">
-              <Button asChild size="lg" className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white shadow-md border-0">
-                <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-5 w-5 mr-2" /> WhatsApp
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="w-full border-2">
-                <a href={`tel:${shop.phone}`}>
-                  <Phone className="h-5 w-5 mr-2" /> Call Now
-                </a>
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mt-8 flex flex-wrap gap-4 pt-6 border-t">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-primary">
-              <a href={mapLink} target="_blank" rel="noopener noreferrer">
-                <MapPin className="h-4 w-4 mr-2" /> Get Directions
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-              <Share2 className="h-4 w-4 mr-2" /> Share Profile
-            </Button>
-             <div className="flex items-center gap-2 ml-auto text-sm text-green-600 font-medium">
-                <Clock className="h-4 w-4" /> Open Now • Closes 9 PM
-             </div>
           </div>
         </div>
 
-        {/* Content Tabs */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="about" className="w-full">
-              <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-xl mb-6">
-                <TabsTrigger value="about" className="rounded-lg px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">About</TabsTrigger>
-                <TabsTrigger value="products" className="rounded-lg px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">Products/Services</TabsTrigger>
-                <TabsTrigger value="reviews" className="rounded-lg px-6 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">Reviews</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="about" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <div className="prose prose-orange max-w-none">
-                  <h3 className="text-2xl font-bold mb-4">About {shop.name}</h3>
-                  <p className="text-lg leading-relaxed text-muted-foreground">
-                    {shop.description}
-                  </p>
-                  <p className="text-muted-foreground mt-4">
-                    Serving the Shahdol community with dedication and quality. We ensure our customers get the best products at the most competitive prices. Visit us to experience our premium service.
-                  </p>
-                </div>
-
-                <div className="bg-muted/30 p-6 rounded-2xl border border-dashed">
-                  <h4 className="font-semibold mb-3">Amenities & Features</h4>
-                  <ul className="grid grid-cols-2 gap-3 text-sm">
-                    {["Digital Payments Accepted", "Home Delivery", "Parking Available", "Wheelchair Accessible"].map(item => (
-                      <li key={item} className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-primary" /> {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="products" className="animate-in fade-in slide-in-from-bottom-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="border rounded-xl p-4 flex gap-4 items-center bg-card hover:border-primary/50 transition-colors">
-                      <div className="h-16 w-16 bg-muted rounded-lg shrink-0 overflow-hidden">
-                         <img src={`https://source.unsplash.com/random/100x100?product,${i}`} className="w-full h-full object-cover" alt="Product" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Popular Item {i}</h4>
-                        <p className="text-sm text-muted-foreground">Starting from ₹199</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 text-center">
-                   <Button variant="outline">View Full Catalog on WhatsApp</Button>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="reviews" className="animate-in fade-in slide-in-from-bottom-2">
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="border-b last:border-0 pb-4">
-                       <div className="flex items-center gap-2 mb-2">
-                         <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-xs">U{i}</div>
-                         <div className="font-medium">Local Guide {i}</div>
-                         <div className="flex text-orange-500 ml-auto">
-                            <Star className="h-3 w-3 fill-current" />
-                            <Star className="h-3 w-3 fill-current" />
-                            <Star className="h-3 w-3 fill-current" />
-                            <Star className="h-3 w-3 fill-current" />
-                            <Star className="h-3 w-3 fill-current" />
-                         </div>
-                       </div>
-                       <p className="text-sm text-muted-foreground">Great service and wide variety of products. Highly recommended for everyone in Shahdol!</p>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-          
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-card border rounded-2xl p-6 shadow-sm">
-               <h3 className="font-semibold mb-4">Location</h3>
-               <div className="aspect-square bg-muted rounded-xl mb-4 overflow-hidden relative">
-                 <img src="https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover opacity-75" alt="Map Placeholder" />
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    <Button variant="secondary" size="sm" className="shadow-lg">View on Google Maps</Button>
-                 </div>
-               </div>
-               <p className="text-sm text-muted-foreground">{shop.address}</p>
+        {/* --- REVIEW FORM --- */}
+        <div className="mt-8 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
+          <h3 className="font-bold mb-6 text-xl text-slate-900">
+            Write a Review
+          </h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                placeholder="Aapka Naam"
+                className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <select
+                className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+              >
+                <option value="">Star Rating</option>
+                <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
+                <option value="4">⭐⭐⭐⭐ (Good)</option>
+                <option value="3">⭐⭐⭐ (Average)</option>
+                <option value="2">⭐⭐ (Poor)</option>
+                <option value="1">⭐ (Bad)</option>
+              </select>
             </div>
+
+            <textarea
+              placeholder="Apna anubhav batayein..."
+              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 h-32 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all resize-none"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+
+            <button
+              onClick={submitReview}
+              disabled={submitting}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {submitting ? "Submitting..." : "Submit Review"}
+            </button>
           </div>
         </div>
       </div>

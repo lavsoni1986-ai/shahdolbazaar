@@ -1,0 +1,128 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertShopSchema, insertUserSchema } from "@shared/schema";
+
+export async function registerRoutes(
+  httpServer: Server,
+  app: Express,
+): Promise<Server> {
+  console.log("✅ API FULLY LOADED: Auth + Shops + Partner Check");
+
+  // --- 1. AUTHENTICATION ---
+
+  app.post("/api/register", async (req: Request, res: Response) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const existing = await storage.getUserByUsername(userData.username);
+      if (existing)
+        return res.status(400).json({ message: "Username already exists" });
+      const user = await storage.createUser(userData);
+      res.json(user);
+    } catch (e) {
+      res.status(400).json({ message: "Register Failed" });
+    }
+  });
+
+  app.post("/api/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password)
+        return res.status(401).json({ message: "Invalid credentials" });
+      res.json(user);
+    } catch (e) {
+      res.status(500).json({ message: "Login Failed" });
+    }
+  });
+
+  // --- 2. SHOP ROUTES ---
+
+  // Get All Shops (Public)
+  app.get("/api/shops", async (req: Request, res: Response) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 9;
+      const q = ((req.query.q as string) || "").toLowerCase();
+      const category = ((req.query.category as string) || "").toLowerCase();
+
+      const allShops = await storage.getShops();
+      const filtered = allShops.filter((s) => {
+        const matchesQ =
+          !q ||
+          s.name.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q);
+        const matchesCat = !category || s.category.toLowerCase() === category;
+        return matchesQ && matchesCat;
+      });
+
+      const paginated = filtered.slice((page - 1) * limit, page * limit);
+      res.json({
+        data: paginated,
+        pagination: {
+          page,
+          limit,
+          total: filtered.length,
+          totalPages: Math.ceil(filtered.length / limit),
+        },
+      });
+    } catch (e) {
+      res.status(500).json({ message: "Error" });
+    }
+  });
+
+  // Get Single Shop (Public)
+  app.get("/api/shops/:id", async (req: Request, res: Response) => {
+    const shop = await storage.getShop(parseInt(req.params.id));
+    if (!shop) return res.status(404).json({ message: "Not Found" });
+    res.json(shop);
+  });
+
+  // 🔴🔴🔴 THE MISSING ROUTE (CRITICAL FIX) 🔴🔴🔴
+  // Ye route batayega ki is user ki dukan pehle se hai ya nahi
+  app.get("/api/partner/shop/:ownerId", async (req: Request, res: Response) => {
+    try {
+      const ownerId = parseInt(req.params.ownerId);
+      // Agar invalid ID hai to null bhejo
+      if (isNaN(ownerId)) return res.json(null);
+
+      const shop = await storage.getShopByOwnerId(ownerId);
+
+      // Agar shop nahi mili, tab bhi null bhejo (Error mat phenko)
+      if (!shop) return res.json(null);
+
+      // Shop mil gayi!
+      res.json(shop);
+    } catch (e) {
+      console.error("Partner Shop Check Error:", e);
+      res.status(500).json({ message: "Server Error" });
+    }
+  });
+
+  // Create Shop (Partner)
+  app.post("/api/shops", async (req: Request, res: Response) => {
+    try {
+      const shopData = insertShopSchema.parse(req.body);
+      const newShop = await storage.createShop(shopData);
+      res.json(newShop);
+    } catch (e) {
+      res.status(400).json({ message: "Invalid Data" });
+    }
+  });
+
+  // Update Shop (Partner)
+  app.patch("/api/shops/:id", async (req: Request, res: Response) => {
+    try {
+      const updateData = insertShopSchema.partial().parse(req.body);
+      const updated = await storage.updateShop(
+        parseInt(req.params.id),
+        updateData,
+      );
+      res.json(updated);
+    } catch (e) {
+      res.status(400).json({ message: "Update Failed" });
+    }
+  });
+
+  return httpServer;
+}

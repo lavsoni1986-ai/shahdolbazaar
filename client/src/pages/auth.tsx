@@ -1,0 +1,195 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Store, Loader2 } from "lucide-react";
+
+// ✅ Schema Validation Rules
+const authSchema = z.object({
+  username: z.string().min(3, "Username kam se kam 3 akshar ka hona chahiye"),
+  password: z.string().min(6, "Password kam se kam 6 akshar ka hona chahiye"),
+});
+
+export default function AuthPage() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("login");
+  const [loading, setLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof authSchema>>({
+    resolver: zodResolver(authSchema),
+    defaultValues: { username: "", password: "" },
+  });
+
+  // ✅ Agar sab sahi hai to ye chalega
+  const onSubmit = async (data: z.infer<typeof authSchema>) => {
+    console.log("🔵 Button Clicked! Data:", data); // Debugging
+    setLoading(true);
+    try {
+      const url = activeTab === "login" ? "/api/login" : "/api/register";
+      console.log("🔵 Calling API:", url); // Debugging
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, role: "partner" }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      // Success
+      console.log("🟢 Success:", result);
+      localStorage.setItem("user", JSON.stringify(result));
+
+      toast({
+        title: activeTab === "login" ? "Welcome Back!" : "Account Created!",
+        description: "Dashboard khul raha hai...",
+      });
+
+      setTimeout(() => {
+        setLocation("/partner/dashboard");
+      }, 1000);
+    } catch (error: any) {
+      console.error("🔴 Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Gadbad ho gayi",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Agar Validation Fail hui to ye chalega (NEW)
+  const onError = (errors: any) => {
+    console.log("🟡 Validation Errors:", errors);
+    toast({
+      variant: "destructive",
+      title: "Form Adhoora Hai!",
+      description: "Kripya Username (3+) aur Password (6+) sahi bharein.",
+    });
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 p-6">
+      <Card className="w-full max-w-md shadow-2xl border-none rounded-[2rem] overflow-hidden">
+        <CardHeader className="bg-orange-500 text-white text-center pb-8">
+          <div className="mx-auto bg-white/20 p-3 rounded-2xl w-fit mb-4">
+            <Store size={32} />
+          </div>
+          <CardTitle className="text-2xl font-black italic uppercase">
+            Partner Portal
+          </CardTitle>
+          <CardDescription className="text-orange-100 font-bold">
+            Apni dukan manage karein
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-8">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid grid-cols-2 mb-8 bg-slate-100 p-1 rounded-xl">
+              <TabsTrigger value="login" className="rounded-lg font-bold">
+                Login
+              </TabsTrigger>
+              <TabsTrigger value="register" className="rounded-lg font-bold">
+                Register
+              </TabsTrigger>
+            </TabsList>
+
+            <Form {...form}>
+              {/* ✅ Error Handler Added here */}
+              <form
+                onSubmit={form.handleSubmit(onSubmit, onError)}
+                className="space-y-6"
+              >
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-slate-700 uppercase text-xs tracking-wider">
+                        Username
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="shopname"
+                          {...field}
+                          className="rounded-xl h-12"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-500 font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-slate-700 uppercase text-xs tracking-wider">
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="******"
+                          {...field}
+                          className="rounded-xl h-12"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-500 font-bold text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-6 rounded-xl shadow-lg uppercase tracking-widest transition-all active:scale-95"
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : activeTab === "login" ? (
+                    "Login Now"
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

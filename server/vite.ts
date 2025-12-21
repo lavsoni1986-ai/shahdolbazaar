@@ -1,31 +1,20 @@
-import { type Express } from "express";
-import { createServer as createViteServer, createLogger } from "vite";
-import { type Server } from "http";
-import viteConfig from "../vite.config";
+import { createServer as createViteServer } from "vite";
+import type { Express } from "express";
+import type { Server } from "http";
+import path, { dirname } from "path";
 import fs from "fs";
-import path from "path";
-import { nanoid } from "nanoid";
+import { fileURLToPath } from "url";
 
-const viteLogger = createLogger();
+// ✅ ES MODULES FIX: __dirname manually banana padta hai
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-export async function setupVite(server: Server, app: Express) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
-    allowedHosts: true as const,
-  };
-
+export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
+    server: {
+      middlewareMode: true,
+      hmr: { server },
     },
-    server: serverOptions,
     appType: "custom",
   });
 
@@ -33,23 +22,18 @@ export async function setupVite(server: Server, app: Express) {
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-
     try {
+      // Ab ye line bina error ke chalegi
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname,
         "..",
         "client",
         "index.html",
       );
+      let template = fs.readFileSync(clientTemplate, "utf-8");
 
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      template = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(template);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
