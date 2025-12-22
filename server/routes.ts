@@ -3,110 +3,153 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertShopSchema, insertUserSchema } from "@shared/schema";
 
+// ✅ FIX 1: Admin PIN Environment Variable se (Safe)
+const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
-  console.log(
-    "✅ API ROUTES LOADED: Auth + Shops + Partner Check + Security Fixes",
-  );
+  console.log("✅ API ROUTES LOADED: Secured & Optimized 🛡️");
 
   // ==========================================
-  // 🔐 1. AUTHENTICATION APIs
+  // 🔐 1. AUTHENTICATION (Login/Register)
   // ==========================================
-
-  // REGISTER
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       const existing = await storage.getUserByUsername(userData.username);
-      if (existing) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
+      if (existing) return res.status(400).json({ message: "Username exists" });
       const user = await storage.createUser(userData);
       res.json(user);
     } catch (error) {
-      console.error("Register Error:", error);
-      res.status(400).json({ message: "Registration Failed" });
+      res.status(400).json({ message: "Register Failed" });
     }
   });
 
-  // LOGIN
   app.post("/api/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
-
-      if (!user || user.password !== password) {
-        return res
-          .status(401)
-          .json({ message: "Invalid username or password" });
-      }
+      if (!user || user.password !== password)
+        return res.status(401).json({ message: "Invalid Credentials" });
       res.json(user);
     } catch (error) {
-      console.error("Login Error:", error);
       res.status(500).json({ message: "Login Failed" });
     }
   });
 
   // ==========================================
-  // 🛍️ 2. SHOP APIs
+  // 👮‍♂️ 2. ADMIN APIs (Secured & Robust)
   // ==========================================
 
-  // Get All Shops (Public)
+  const requireAdmin = (req: Request, res: Response, next: any) => {
+    const providedPin = req.headers["x-admin-pin"];
+    if (providedPin !== ADMIN_PIN) {
+      return res.status(403).json({ message: "Access Denied: Wrong PIN 🚫" });
+    }
+    next();
+  };
+
+  // Get All Shops
+  app.get(
+    "/api/admin/shops",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const shops = await storage.getShops();
+        res.json(shops);
+      } catch (e) {
+        res.status(500).json({ message: "Error loading shops" });
+      }
+    },
+  );
+
+  // Approve Shop (✅ FIX 2: Check existence first)
+  app.patch(
+    "/api/shops/:id/approve",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+
+        // Safety Check: Dukan hai bhi ya nahi?
+        const existingShop = await storage.getShop(id);
+        if (!existingShop)
+          return res.status(404).json({ message: "Shop not found" });
+
+        const updated = await storage.updateShop(id, { approved: true });
+        res.json(updated);
+      } catch (e) {
+        res.status(500).json({ message: "Approval Failed" });
+      }
+    },
+  );
+
+  // Delete Shop (✅ FIX 2: Check existence first)
+  app.delete(
+    "/api/shops/:id",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+
+        // Safety Check
+        const existingShop = await storage.getShop(id);
+        if (!existingShop)
+          return res.status(404).json({ message: "Shop not found" });
+
+        await storage.deleteShop(id);
+        res.json({ success: true });
+      } catch (e) {
+        res.status(500).json({ message: "Delete Failed" });
+      }
+    },
+  );
+
+  // ==========================================
+  // 🛍️ 3. PUBLIC SHOP APIs (Leak Proof)
+  // ==========================================
+
+  // Get Approved Shops Only
   app.get("/api/shops", async (req: Request, res: Response) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 9;
       const q = ((req.query.q as string) || "").toLowerCase();
-      const category = ((req.query.category as string) || "").toLowerCase();
-
       const allShops = await storage.getShops();
 
       const filtered = allShops.filter((s) => {
-        // ✅ FIX 1: Sirf Approved dukan dikhao (Future Admin Safety)
         if (s.approved === false) return false;
-
-        const matchesQ =
+        return (
           !q ||
           s.name.toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q);
-        const matchesCat = !category || s.category.toLowerCase() === category;
-        return matchesQ && matchesCat;
+          s.category.toLowerCase().includes(q)
+        );
       });
 
-      const paginated = filtered.slice((page - 1) * limit, page * limit);
-      res.json({
-        data: paginated,
-        pagination: {
-          page,
-          limit,
-          total: filtered.length,
-          totalPages: Math.ceil(filtered.length / limit),
-        },
-      });
+      res.json({ data: filtered });
     } catch (e) {
       res.status(500).json({ message: "Error" });
     }
   });
 
-  // Get Single Shop
+  // Get Single Shop (✅ FIX 3: Prevent viewing unapproved shops via URL)
   app.get("/api/shops/:id", async (req: Request, res: Response) => {
-    const shop = await storage.getShop(parseInt(req.params.id));
-    if (!shop) return res.status(404).json({ message: "Not Found" });
-    res.json(shop);
-  });
-
-  // Check Partner Shop (By Owner ID)
-  app.get("/api/partner/shop/:ownerId", async (req: Request, res: Response) => {
     try {
-      const ownerId = parseInt(req.params.ownerId);
-      if (isNaN(ownerId)) return res.json(null);
-      const shop = await storage.getShopByOwnerId(ownerId);
-      if (!shop) return res.json(null);
+      const id = parseInt(req.params.id);
+      const shop = await storage.getShop(id);
+
+      if (!shop) return res.status(404).json({ message: "Shop not found" });
+
+      // 🔴 SECURITY BLOCK: Agar approved nahi hai, to mat dikhao
+      if (shop.approved === false) {
+        return res
+          .status(403)
+          .json({ message: "This shop is pending approval ⏳" });
+      }
+
       res.json(shop);
     } catch (e) {
-      res.status(500).json({ message: "Error" });
+      res.status(500).json({ message: "Server Error" });
     }
   });
 
@@ -124,21 +167,23 @@ export async function registerRoutes(
   // Update Shop
   app.patch("/api/shops/:id", async (req: Request, res: Response) => {
     try {
-      const updateData = insertShopSchema.partial().parse(req.body);
-      const updated = await storage.updateShop(
-        parseInt(req.params.id),
-        updateData,
-      );
-
-      // ✅ FIX 2: Null Check (Agar shop nahi mili to crash mat hone do)
-      if (!updated) {
+      const id = parseInt(req.params.id);
+      const existingShop = await storage.getShop(id);
+      if (!existingShop)
         return res.status(404).json({ message: "Shop not found" });
-      }
 
+      const updateData = insertShopSchema.partial().parse(req.body);
+      const updated = await storage.updateShop(id, updateData);
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: "Update Failed" });
     }
+  });
+
+  // Partner Dashboard Check (Internal use, so no approval check needed here)
+  app.get("/api/partner/shop/:ownerId", async (req: Request, res: Response) => {
+    const shop = await storage.getShopByOwnerId(parseInt(req.params.ownerId));
+    res.json(shop || null);
   });
 
   return httpServer;

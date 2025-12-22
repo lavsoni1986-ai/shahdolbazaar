@@ -6,6 +6,11 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
 export default defineConfig({
+  // GitHub Pages ke liye repo base path
+  // URL: https://lavsoni1986-ai.github.io/shahdol-bazaar/
+  // => base: "/shahdol-bazaar/"
+  base: "/shahdol-bazaar/",
+
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -23,6 +28,7 @@ export default defineConfig({
         ]
       : []),
   ],
+
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -30,16 +36,23 @@ export default defineConfig({
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
+
   css: {
     postcss: {
       plugins: [],
     },
   },
+
+  // Replit project ka root "client" folder
   root: path.resolve(import.meta.dirname, "client"),
+
+  // Build output jo GitHub repo me upload karna hai
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    // dist/ ke andar final static site
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
   },
+
   server: {
     host: "0.0.0.0",
     allowedHosts: true,

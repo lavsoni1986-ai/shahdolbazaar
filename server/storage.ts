@@ -6,29 +6,24 @@ import {
   type Shop,
   type InsertShop,
 } from "@shared/schema";
-import { db } from "./db"; // Database connection
+import { db } from "./db";
 import { eq } from "drizzle-orm";
 
-// 1. INTERFACE UPDATE (Ye batata hai ki kya-kya functions hone chahiye)
 export interface IStorage {
-  // User Methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  // Shop Methods
-  getShops(): Promise<Shop[]>;
-  getShop(id: number): Promise<Shop | undefined>;
   createShop(shop: InsertShop): Promise<Shop>;
-
-  // ✅ YE 2 METHODS MISSING THE (Ab jod diye hain)
+  getShop(id: number): Promise<Shop | undefined>;
   getShopByOwnerId(ownerId: number): Promise<Shop | undefined>;
+  getShops(): Promise<Shop[]>;
   updateShop(id: number, shop: Partial<InsertShop>): Promise<Shop>;
+  deleteShop(id: number): Promise<void>;
 }
 
-// 2. IMPLEMENTATION (Asli Logic)
 export class DatabaseStorage implements IStorage {
-  // --- USER LOGIC ---
+  // USER METHODS
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -47,9 +42,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // --- SHOP LOGIC ---
-  async getShops(): Promise<Shop[]> {
-    return await db.select().from(shops).orderBy(shops.id);
+  // SHOP METHODS
+  async createShop(insertShop: InsertShop): Promise<Shop> {
+    const [shop] = await db.insert(shops).values(insertShop).returning();
+    return shop;
   }
 
   async getShop(id: number): Promise<Shop | undefined> {
@@ -57,12 +53,6 @@ export class DatabaseStorage implements IStorage {
     return shop;
   }
 
-  async createShop(insertShop: InsertShop): Promise<Shop> {
-    const [shop] = await db.insert(shops).values(insertShop).returning();
-    return shop;
-  }
-
-  // ✅ MISSING FUNCTION 1: User ID se Dukan dhoondna
   async getShopByOwnerId(ownerId: number): Promise<Shop | undefined> {
     const [shop] = await db
       .select()
@@ -71,16 +61,37 @@ export class DatabaseStorage implements IStorage {
     return shop;
   }
 
-  // ✅ MISSING FUNCTION 2: Dukan Update karna
+  async getShops(): Promise<Shop[]> {
+    return await db.select().from(shops);
+  }
+
+  // ✅ FIX 1: Robust Update (Crash Proof)
   async updateShop(id: number, shopData: Partial<InsertShop>): Promise<Shop> {
-    const [updatedShop] = await db
+    const [shop] = await db
       .update(shops)
       .set(shopData)
       .where(eq(shops.id, id))
       .returning();
-    return updatedShop;
+
+    if (!shop) {
+      throw new Error("Shop not found");
+    }
+
+    return shop;
+  }
+
+  // ✅ FIX 2: Safe Delete (Confirmation)
+  async deleteShop(id: number): Promise<void> {
+    // Hum 'returning()' use kar rahe hain taaki pata chale kuch delete hua ya nahi
+    const [deleted] = await db
+      .delete(shops)
+      .where(eq(shops.id, id))
+      .returning();
+
+    if (!deleted) {
+      throw new Error("Shop not found or already deleted");
+    }
   }
 }
 
-// Export Instance
 export const storage = new DatabaseStorage();

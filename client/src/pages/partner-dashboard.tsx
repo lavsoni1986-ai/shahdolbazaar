@@ -1,144 +1,156 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useLocation } from "wouter";
-import { Store, LogOut, Save, Loader2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { uploadImageToFirebase } from "@/lib/firebase";
+import { Store, Loader2, LogOut, CheckCircle2 } from "lucide-react";
 
-type LocalUser = { id: number; username: string; role?: string };
+// ✅ FIX: Categories ko yahi define kar diya (Import error se bachne ke liye)
+const categories = [
+  { id: 1, name: "Grocery" },
+  { id: 2, name: "Electronics" },
+  { id: 3, name: "Clothing" },
+  { id: 4, name: "Medical" },
+  { id: 5, name: "Restaurant" },
+  { id: 6, name: "Salon" },
+  { id: 7, name: "Other" },
+];
+
+// 1. Frontend Schema
+const shopFormSchema = z.object({
+  name: z.string().min(2, "Shop name kam se kam 2 akshar ka hona chahiye"),
+  category: z.string().min(1, "Category select karna zaroori hai"),
+  mobile: z
+    .string()
+    .regex(/^\d{10}$/, "Mobile number sahi 10 anko ka hona chahiye"),
+  address: z.string().optional(),
+  description: z.string().optional(),
+  image: z.string().optional(),
+});
+
+type ShopFormValues = z.infer<typeof shopFormSchema>;
 
 export default function PartnerDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [user, setUser] = useState<LocalUser | null>(null);
-
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [checkingShop, setCheckingShop] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [shopId, setShopId] = useState<number | null>(null);
 
-  const [existingShopId, setExistingShopId] = useState<number | null>(null);
+  // Safe User Parsing
+  let user: any = null;
+  try {
+    const userStr = localStorage.getItem("user");
+    user = userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    localStorage.removeItem("user");
+  }
 
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "Grocery",
-    description: "",
-    mobile: "",
-    address: "",
-    image: "",
+  // Form Setup
+  const form = useForm<ShopFormValues>({
+    resolver: zodResolver(shopFormSchema),
+    defaultValues: {
+      name: "",
+      // ✅ AB YE FAIL NAHI HOGA (Kyunki categories yahi maujood hai)
+      category: categories[0]?.name || "",
+      description: "",
+      address: "",
+      mobile: "",
+      image: "",
+    },
   });
 
-  // ✅ FIXED LOGIC
+  // Check Existing Shop
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) {
+    if (!user) {
       setLocation("/auth");
       return;
     }
 
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
+    async function checkExistingShop() {
+      try {
+        const res = await fetch(`/api/partner/shop/${user.id}`);
+        if (res.status === 404) return;
 
-    // Agar User ID hai, tabhi shop check karo
-    if (parsedUser.id) {
-      fetch(`/api/partner/shop/${parsedUser.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) {
-            setExistingShopId(data.id);
-            setFormData({
-              name: data.name,
-              category: data.category,
-              description: data.description || "",
-              mobile: data.mobile,
-              address: data.address || "",
-              image: data.image || "",
-            });
-          }
-          setFetching(false); // Stop loading
-        })
-        .catch((err) => {
-          console.error(err);
-          setFetching(false);
-        });
-    } else {
-      // ⚠️ Agar purana user hai jiske paas ID nahi hai, to logout karwa do
-      localStorage.removeItem("user");
-      setLocation("/auth");
+        const data = await res.json();
+        if (data && data.id) {
+          console.log("✅ Dukan Mil Gayi:", data);
+          setIsEditMode(true);
+          setShopId(data.id);
+
+          form.reset({
+            name: data.name,
+            category: data.category,
+            description: data.description || "",
+            address: data.address || "",
+            mobile: data.mobile,
+            image: data.image || "",
+          });
+        }
+      } catch (error) {
+        console.log("Create Mode Active");
+      } finally {
+        setCheckingShop(false);
+      }
     }
-  }, [setLocation]);
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    checkExistingShop();
+  }, [user, setLocation, form]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
+  // Submit Handler
+  const onSubmit = async (data: ShopFormValues) => {
+    if (!user) return;
+    setLoading(true);
+
     try {
-      const downloadURL = await uploadImageToFirebase(file);
-      setFormData((prev) => ({ ...prev, image: downloadURL }));
-      toast({ title: "Success", description: "Photo upload ho gayi!" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Upload Failed" });
-    } finally {
-      setUploading(false);
-    }
-  };
+      const url = isEditMode ? `/api/shops/${shopId}` : "/api/shops";
+      const method = isEditMode ? "PATCH" : "POST";
+      const payload = { ...data, ownerId: user.id };
 
-  const handleSave = async () => {
-    if (!formData.name || !/^\d{10}$/.test(formData.mobile)) {
+      const res = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save shop");
+      const savedShop = await res.json();
+
+      if (!isEditMode) {
+        setIsEditMode(true);
+        setShopId(savedShop.id);
+      }
+
+      toast({
+        title: isEditMode ? "Shop Updated! ✏️" : "Shop Created! 🎉",
+        description: "Success!",
+      });
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Naam aur sahi Mobile number zaroori hai.",
+        description: "Failed to save.",
       });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let url = "/api/shops";
-      let method = "POST";
-      let bodyData: any = { ...formData, ownerId: user?.id };
-
-      if (existingShopId) {
-        url = `/api/shops/${existingShopId}`;
-        method = "PATCH";
-      } else {
-        bodyData = {
-          ...bodyData,
-          rating: 0,
-          avgRating: 0,
-          isFeatured: false,
-          approved: true,
-        };
-      }
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyData),
-      });
-
-      if (response.ok) {
-        toast({ title: existingShopId ? "Updated! ✅" : "Published! 🎉" });
-        if (!existingShopId) {
-          const newShop = await response.json();
-          setExistingShopId(newShop.id);
-        }
-      } else {
-        toast({ variant: "destructive", title: "Error" });
-      }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Server Error" });
     } finally {
       setLoading(false);
     }
@@ -149,150 +161,176 @@ export default function PartnerDashboard() {
     setLocation("/auth");
   };
 
-  if (!user || fetching)
+  if (checkingShop) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">
-        Loading Dashboard...
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8 text-orange-500" />
       </div>
     );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg text-orange-600">
-            <Store size={24} />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg text-slate-800">My Dukan</h1>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-              {existingShopId ? "Edit Mode ✏️" : "Create Mode ✨"}
-            </p>
-          </div>
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <header className="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <Store className="text-orange-500" />
+          <h1 className="font-bold text-lg">Partner Dashboard</h1>
         </div>
         <Button
-          variant="outline"
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
-          className="text-red-500 border-red-100"
+          className="text-red-500"
         >
-          <LogOut size={16} className="mr-2" /> Logout
+          <LogOut size={18} className="mr-1" /> Logout
         </Button>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl mb-8">
-          <h2 className="text-3xl font-black mb-2">
-            Namaste, {user.username}!
-          </h2>
-          <p className="opacity-80">
-            {existingShopId
-              ? "Details update karein."
-              : "Business online karein."}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">
-                Dukan Ka Naam
-              </label>
-              <Input
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="h-12 text-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">
-                Category
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full h-12 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="Grocery">Grocery</option>
-                <option value="Medical">Medical</option>
-                <option value="Restaurants">Restaurants</option>
-                <option value="Mobile">Mobile</option>
-                <option value="Services">Services</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Mobile</label>
-              <Input
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                className="h-12"
-                maxLength={10}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">
-                Address
-              </label>
-              <Input
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="h-12"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-bold text-slate-700">Photo</label>
-              <div className="flex items-center gap-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                  className="file:bg-orange-50 file:text-orange-600 file:border-0 file:rounded-lg h-14 pt-2"
-                />
-                {uploading && (
-                  <Loader2 className="animate-spin text-orange-500" />
-                )}
+      <main className="p-4 max-w-lg mx-auto">
+        <div
+          className={`border p-4 rounded-xl mb-6 flex gap-3 items-start ${isEditMode ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}`}
+        >
+          {isEditMode ? (
+            <>
+              <CheckCircle2 className="text-green-600 shrink-0 mt-1" />
+              <div>
+                <h2 className="font-bold text-green-800">Shop is Live ✅</h2>
+                <p className="text-sm text-green-700">
+                  Aapki dukan active hai.
+                </p>
               </div>
-              {formData.image && (
-                <div className="mt-4 w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-                  <img
-                    src={formData.image}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-bold text-slate-700">
-                Description
-              </label>
-              <Textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className="h-32 text-base"
-              />
-            </div>
-          </div>
-          <div className="mt-8">
-            <Button
-              onClick={handleSave}
-              disabled={loading || uploading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-6 text-lg rounded-xl shadow-lg"
-            >
-              {loading
-                ? "Saving..."
-                : existingShopId
-                  ? "UPDATE SHOP"
-                  : "PUBLISH SHOP"}
-            </Button>
-          </div>
+            </>
+          ) : (
+            <>
+              <Store className="text-orange-600 shrink-0 mt-1" />
+              <div>
+                <h2 className="font-bold text-orange-800">Welcome Partner!</h2>
+                <p className="text-sm text-orange-700">Niche form bharein.</p>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 bg-white p-6 rounded-2xl shadow-sm"
+          >
+            <h2 className="text-xl font-bold mb-4">
+              {isEditMode ? "Edit Shop Details ✏️" : "Create New Shop ✨"}
+            </h2>
+
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shop Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="mobile"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile</FormLabel>
+                  <FormControl>
+                    <Input placeholder="9876543210" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image Link</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              className="w-full bg-orange-500 text-white py-6 text-lg font-bold"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : isEditMode ? (
+                "Update Changes"
+              ) : (
+                "Publish My Shop"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </main>
     </div>
   );
 }

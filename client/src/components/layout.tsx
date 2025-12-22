@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const myWhatsAppNumber = "918306596557";
+  const myWhatsAppNumber = "919753239303";
   const myEmail = "support@shahdolbazaar.com";
 
   return (
@@ -28,15 +28,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
             <Link href="/about">
-              <a className="text-slate-500 hover:text-orange-500 transition-colors">
+              <span className="text-slate-500 hover:text-orange-500 transition-colors cursor-pointer">
                 About Us
-              </a>
+              </span>
             </Link>
 
             <Link href="/auth">
-              <a className="text-slate-500 hover:text-orange-500 transition-colors">
+              <span className="text-slate-500 hover:text-orange-500 transition-colors cursor-pointer">
                 Partner Login
-              </a>
+              </span>
             </Link>
 
             <Link href="/auth">
@@ -63,21 +63,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="md:hidden border-t p-4 space-y-4 bg-white animate-in slide-in-from-top duration-200">
             <nav className="flex flex-col gap-4">
               <Link href="/about">
-                <a
-                  className="text-sm font-bold text-slate-600"
+                <span
+                  className="text-sm font-bold text-slate-600 cursor-pointer block"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   About Us
-                </a>
+                </span>
               </Link>
 
               <Link href="/auth">
-                <a
-                  className="text-sm font-bold text-slate-600"
+                <span
+                  className="text-sm font-bold text-slate-600 cursor-pointer block"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Partner Login
-                </a>
+                </span>
               </Link>
 
               <Link href="/auth">
@@ -117,16 +117,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Company Links */}
           <div>
             <Link href="/about">
-              <a className="block font-bold text-orange-500 mb-6 uppercase text-xs tracking-widest hover:underline">
+              <span className="block font-bold text-orange-500 mb-6 uppercase text-xs tracking-widest hover:underline cursor-pointer">
                 Company →
-              </a>
+              </span>
             </Link>
             <ul className="space-y-4 text-sm font-medium">
               <li>
                 <Link href="/about">
-                  <a className="hover:text-orange-500 transition-colors">
+                  <span className="hover:text-orange-500 transition-colors cursor-pointer block">
                     About Us
-                  </a>
+                  </span>
                 </Link>
               </li>
               <li>
@@ -139,9 +139,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </li>
               <li>
                 <Link href="/terms">
-                  <a className="hover:text-orange-500 transition-colors">
+                  <span className="hover:text-orange-500 transition-colors cursor-pointer block">
                     Terms of Service
-                  </a>
+                  </span>
                 </Link>
               </li>
             </ul>

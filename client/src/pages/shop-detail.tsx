@@ -1,267 +1,134 @@
-import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "wouter";
-import { Phone, MapPin, MessageCircle, Star } from "lucide-react";
-import { addReview, getReviews } from "@/lib/reviews";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import {
+  Loader2,
+  MapPin,
+  Phone,
+  MessageCircle,
+  Share2,
+  Store,
+} from "lucide-react";
 
-// Helper to clean phone numbers
-function normalizePhone(raw: string) {
-  const digits = (raw || "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.length === 10) return `91${digits}`;
-  return digits;
-}
-
-type Review = {
-  id?: string;
-  name: string;
-  rating: number;
-  comment: string;
+// Shop ka data lane ke liye function
+const fetchShop = async (id: string) => {
+  const res = await fetch(`/api/shops/${id}`);
+  if (!res.ok) {
+    throw new Error("Shop not found");
+  }
+  return res.json();
 };
 
 export default function ShopDetail() {
-  const [, params] = useRoute("/shop/:id");
-  const id = params?.id ?? "";
+  const [match, params] = useRoute("/shop/:id");
+  const id = params?.id;
 
-  /* ---------- STATE ---------- */
-  const [shop, setShop] = useState<any>(null);
-  const [loadingShop, setLoadingShop] = useState(true);
+  // Real Data Fetching 🎣
+  const {
+    data: shop,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["shop", id],
+    queryFn: () => fetchShop(id!),
+    enabled: !!id, // Jab tak ID na mile tab tak mat dhundo
+  });
 
-  // Reviews State
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loadingReviews, setLoadingReviews] = useState(true);
-
-  // Form State
-  const [name, setName] = useState("");
-  const [rating, setRating] = useState<number | "">("");
-  const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  /* ---------- 1️⃣ LOAD DATA FROM API (UPDATED) ---------- */
-  useEffect(() => {
-    if (!id) return;
-    setLoadingShop(true);
-
-    // ✅ Asli Server Call
-    fetch(`/api/shops/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Shop not found");
-        return res.json();
-      })
-      .then((data) => {
-        setShop(data);
-        // SEO Title Set karna
-        document.title = `${data.name} | ShahdolBazaar`;
-      })
-      .catch((err) => {
-        console.error("Error fetching shop:", err);
-        setShop(null);
-      })
-      .finally(() => setLoadingShop(false));
-
-    // Reviews abhi ke liye dummy/lib se aa rahe hain (Baad me API banayenge)
-    getReviews(id)
-      .then((data: any) => setReviews(data))
-      .catch(() => setReviews([]))
-      .finally(() => setLoadingReviews(false));
-  }, [id]);
-
-  /* ---------- HELPER LOGIC ---------- */
-  const averageRating = useMemo(() => {
-    // Agar shop ke paas API se rating aayi hai to wo use karo, nahi to calculate karo
-    if (shop?.avgRating) return shop.avgRating;
-
-    if (reviews.length === 0) return "0.0";
-    const total = reviews.reduce((sum, r) => sum + Number(r.rating), 0);
-    return (total / reviews.length).toFixed(1);
-  }, [reviews, shop]);
-
-  /* ---------- LOADING & ERROR STATES ---------- */
-  if (loadingShop)
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-orange-600 h-10 w-10" />
       </div>
     );
+  }
 
-  if (!shop)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Shop Nahi Mili 😕
-        </h2>
-        <p className="text-slate-500">
-          Shayad ye dukan hata di gayi hai ya ID galat hai.
-        </p>
-        <a href="/" className="mt-4 text-orange-600 font-bold hover:underline">
-          Go Home
-        </a>
-      </div>
-    );
+  if (error || !shop) {
+    return <div className="text-center p-10">Shop nahi mili! 😕</div>;
+  }
 
-  /* ---------- LINKS PREPARATION ---------- */
-  const normalized = normalizePhone(shop.mobile || shop.phone); // API sends 'mobile'
-
-  const whatsappHref = normalized
-    ? `https://wa.me/${normalized}?text=${encodeURIComponent(
-        `Hello ${shop.name}, main ShahdolBazaar se enquiry karna chahta hoon...`,
-      )}`
-    : "#";
-
-  // ✅ Google Maps Link Fixed
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${shop.name} ${shop.address || "Shahdol"}`,
-  )}`;
-
-  /* ---------- SUBMIT REVIEW ---------- */
-  const submitReview = async () => {
-    if (!name || !rating || !comment || submitting) return;
-
-    setSubmitting(true);
-    try {
-      await addReview(id, name, Number(rating), comment);
-      setName("");
-      setRating("");
-      setComment("");
-      const updated = await getReviews(id);
-      setReviews(updated);
-      alert("Review submit ho gaya!");
-    } catch (e) {
-      alert("Error submitting review");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // WhatsApp Link banana
+  const whatsappLink = `https://wa.me/91${shop.mobile}?text=Hello, I saw your shop on ShahdolBazaar!`;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* --- MAIN CARD --- */}
-        <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200">
-          <div className="flex flex-col md:flex-row">
-            {/* IMAGE SECTION */}
-            <div className="md:w-1/2 h-72 md:h-96 overflow-hidden bg-slate-100 relative">
-              <img
-                src={
-                  shop.image ||
-                  "https://via.placeholder.com/600x400?text=No+Image"
-                }
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://via.placeholder.com/600x400?text=Shop+Image";
-                }}
-                className="w-full h-full object-cover"
-                alt={shop.name}
-              />
-              {shop.isFeatured && (
-                <span className="absolute top-4 left-4 bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                  FEATURED
-                </span>
-              )}
-            </div>
+      {/* 1. Hero Image Section */}
+      <div className="relative h-64 md:h-80 bg-slate-200">
+        {shop.image ? (
+          <img
+            src={shop.image}
+            alt={shop.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-6xl bg-orange-100 text-orange-300">
+            🏪
+          </div>
+        )}
+        <div className="absolute top-4 left-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.history.back()}
+          >
+            ← Back
+          </Button>
+        </div>
+      </div>
 
-            {/* DETAILS SECTION */}
-            <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-center">
-              <div className="inline-block self-start px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full uppercase mb-3">
+      {/* 2. Shop Info Card */}
+      <div className="container mx-auto px-4 -mt-10 relative z-10">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">
                 {shop.category}
-              </div>
-
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-2">
+              </span>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mt-2">
                 {shop.name}
               </h1>
-
-              <div className="flex items-center mb-4 text-orange-500 font-bold text-lg">
-                <Star size={20} fill="currentColor" className="mr-1" />
-                {averageRating}
-                <span className="text-slate-400 font-normal text-sm ml-2">
-                  ({reviews.length} reviews)
-                </span>
-              </div>
-
-              <p className="text-slate-600 leading-relaxed mb-8">
-                {shop.description || "No description available."}
-              </p>
-
-              {/* ACTION BUTTONS */}
-              <div className="space-y-3">
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-100 transition-all transform hover:-translate-y-1"
-                >
-                  <MessageCircle size={22} /> Chat on WhatsApp
-                </a>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {normalized ? (
-                    <a
-                      href={`tel:${normalized}`}
-                      className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition-colors"
-                    >
-                      <Phone size={18} /> Call
-                    </a>
-                  ) : (
-                    <button
-                      disabled
-                      className="flex items-center justify-center gap-2 border border-slate-100 bg-slate-50 text-slate-300 font-bold py-3 rounded-xl cursor-not-allowed"
-                    >
-                      <Phone size={18} /> No Number
-                    </button>
-                  )}
-
-                  <a
-                    href={mapsHref}
-                    target="_blank"
-                    className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition-colors"
-                  >
-                    <MapPin size={18} /> Location
-                  </a>
-                </div>
-              </div>
             </div>
+            {/* Share Button (Optional) */}
+            <Button variant="ghost" size="icon" className="text-slate-400">
+              <Share2 size={20} />
+            </Button>
           </div>
-        </div>
 
-        {/* --- REVIEW FORM --- */}
-        <div className="mt-8 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <h3 className="font-bold mb-6 text-xl text-slate-900">
-            Write a Review
-          </h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                placeholder="Aapka Naam"
-                className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <select
-                className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value))}
-              >
-                <option value="">Star Rating</option>
-                <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
-                <option value="4">⭐⭐⭐⭐ (Good)</option>
-                <option value="3">⭐⭐⭐ (Average)</option>
-                <option value="2">⭐⭐ (Poor)</option>
-                <option value="1">⭐ (Bad)</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-2 text-slate-500 mb-6">
+            <MapPin size={18} className="text-orange-500" />
+            <p>{shop.address || "Address not provided"}</p>
+          </div>
 
-            <textarea
-              placeholder="Apna anubhav batayein..."
-              className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 h-32 outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all resize-none"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
+          {/* 3. Action Buttons (Call & WhatsApp) ✅ Fixed */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {/* CALL BUTTON - Ab ye 'a' tag hai jo seedha dialer kholega */}
+            <a href={`tel:${shop.mobile}`} className="w-full">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg shadow-md transition-transform active:scale-95">
+                <Phone className="mr-2 h-5 w-5" /> Call Now
+              </Button>
+            </a>
 
-            <button
-              onClick={submitReview}
-              disabled={submitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            {/* WHATSAPP BUTTON */}
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full"
             >
-              {submitting ? "Submitting..." : "Submit Review"}
-            </button>
+              <Button className="w-full bg-green-500 hover:bg-green-600 text-white py-6 text-lg shadow-md transition-transform active:scale-95">
+                <MessageCircle className="mr-2 h-5 w-5" /> Chat
+              </Button>
+            </a>
+          </div>
+
+          {/* 4. Description */}
+          <div className="border-t pt-6">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+              <Store size={20} className="text-slate-400" />
+              About the Shop
+            </h3>
+            <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+              {shop.description || "No description available for this shop."}
+            </p>
           </div>
         </div>
       </div>
