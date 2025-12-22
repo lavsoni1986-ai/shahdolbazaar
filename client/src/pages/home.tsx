@@ -42,6 +42,18 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Performance: Debounce search input
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // --- DEBOUNCE SEARCH INPUT (Performance optimization) ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setPage(1); // Reset to page 1 on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   // --- DATA FETCHING ---
   useEffect(() => {
     setLoading(true);
@@ -49,7 +61,7 @@ export default function Home() {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: "9",
-      q: query, // Ab ye 'query' state use karega (Enter ke baad)
+      q: debouncedQuery, // Use debounced query
       category: activeCategory || "",
     });
 
@@ -69,7 +81,7 @@ export default function Home() {
         setLoading(false);
         setShops([]);
       });
-  }, [page, query, activeCategory]); // Dependency: Jab ye badlenge, data reload hoga
+  }, [page, debouncedQuery, activeCategory]);
 
   // --- LOGIC: Reset Page on Filter Change ---
   useEffect(() => {

@@ -50,25 +50,27 @@ export default function ShopDetail() {
   const whatsappLink = `https://wa.me/91${shop.mobile}?text=Hello, I saw your shop on ShahdolBazaar!`;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* 1. Hero Image Section */}
-      <div className="relative h-64 md:h-80 bg-slate-200">
+    <div className="min-h-screen bg-slate-50 pb-20" data-testid="shop-detail-page">
+      {/* 1. Hero Image Section - Mobile optimized */}
+      <div className="relative h-48 sm:h-64 md:h-80 bg-slate-200 w-full">
         {shop.image ? (
           <img
             src={shop.image}
             alt={shop.name}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-6xl bg-orange-100 text-orange-300">
+          <div className="w-full h-full flex items-center justify-center text-4xl sm:text-6xl bg-orange-100 text-orange-300">
             🏪
           </div>
         )}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => window.history.back()}
+            data-testid="button-back"
           >
             ← Back
           </Button>
