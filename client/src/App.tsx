@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/sonner";
 import { Layout } from "@/components/layout";
+import AIChat from "@/components/AIChat"; // ✅ AI Assistant Import kiya
 
 // Pages
 import Home from "@/pages/home";
@@ -14,22 +15,50 @@ import CategoryListing from "@/pages/category-listing";
 import ShopDetail from "@/pages/shop-detail";
 import Admin from "@/pages/admin";
 import PartnerDashboard from "@/pages/partner-dashboard";
-import AuthPage from "@/pages/auth"; // 🔑 Naya Login Page
+import AuthPage from "@/pages/auth";
 import NotFound from "@/pages/not-found";
+import Bus from "@/pages/bus";
 
-/* ---------- Authentication Check ---------- */
-// Ye function check karega ki user login hai ya nahi
-const useAuth = () => {
-  const user = localStorage.getItem("user"); // Temporary logic for MVP
-  return { isAuthenticated: !!user };
+/* ---------- ✅ AUTH HOOK ---------- */
+interface User {
+  id: string;
+  name: string;
+  role: "partner" | "admin";
+}
+
+const useAuth = (): { isAuthenticated: boolean; user: User | null } => {
+  try {
+    const user = localStorage.getItem("user");
+    const userData = user ? (JSON.parse(user) as User) : null;
+    return {
+      isAuthenticated: !!userData,
+      user: userData,
+    };
+  } catch {
+    return { isAuthenticated: false, user: null };
+  }
 };
 
-/* ---------- Protected Route Component ---------- */
-function ProtectedRoute({ component: Component, ...rest }: any) {
+/* ---------- ✅ PROTECTED ROUTE ---------- */
+interface ProtectedRouteProps {
+  path: string;
+  component: React.ComponentType<any>;
+}
+
+function ProtectedRoute({
+  component: Component,
+  ...rest
+}: ProtectedRouteProps) {
   const { isAuthenticated } = useAuth();
+  const returnUrl = window.location.pathname;
+
   return (
     <Route {...rest}>
-      {isAuthenticated ? <Component /> : <Redirect to="/auth" />}
+      {isAuthenticated ? (
+        <Component />
+      ) : (
+        <Redirect to={`/auth?return=${encodeURIComponent(returnUrl)}`} />
+      )}
     </Route>
   );
 }
@@ -37,35 +66,40 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
 function ScrollToTop() {
   const [location] = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
   }, [location]);
   return null;
 }
 
-/* ---------- Router ---------- */
+/* ---------- ✅ MAIN ROUTER ---------- */
 function Router() {
   return (
     <Layout>
       <ScrollToTop />
+
       <Switch>
+        {/* Public Pages */}
         <Route path="/" component={Home} />
         <Route path="/about" component={About} />
         <Route path="/terms" component={Terms} />
+        <Route path="/bus" component={Bus} />
         <Route path="/category/:slug" component={CategoryListing} />
         <Route path="/shop/:id" component={ShopDetail} />
-
-        {/* Public Auth Page */}
         <Route path="/auth" component={AuthPage} />
 
-        {/* 🔒 Protected Routes (Login Zaroori Hai) */}
+        {/* Protected Routes */}
         <ProtectedRoute path="/admin" component={Admin} />
         <ProtectedRoute
           path="/partner/dashboard"
           component={PartnerDashboard}
         />
 
+        {/* 404 Page */}
         <Route component={NotFound} />
       </Switch>
+
+      {/* ✅ Floating AI Chat - Ye har page par dikhega */}
+      <AIChat />
     </Layout>
   );
 }
@@ -73,7 +107,7 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster />
+      <Toaster position="top-center" richColors />
       <Router />
     </QueryClientProvider>
   );

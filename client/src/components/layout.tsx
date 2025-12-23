@@ -1,40 +1,67 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, MessageCircle, Bus } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [location] = useLocation();
+
   const myWhatsAppNumber = "919753239303";
   const myEmail = "support@shahdolbazaar.com";
+
+  // Route change hote hi menu band karne ke liye
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
       {/* --- HEADER SECTION --- */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur shadow-sm">
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
-          {/* ✅ FIXED: Ab Logo click karne par Page Refresh hoga */}
-          <a
-            href="/"
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-          >
+          <Link href="/">
             <img
               src="/logo.png"
               alt="ShahdolBazaar"
-              className="h-10 md:h-14 w-auto object-contain"
+              className="h-10 md:h-14 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
             />
-          </a>
+          </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
+            <Link href="/bus">
+              <span
+                className={`flex items-center gap-1 cursor-pointer transition-colors ${
+                  location === "/bus"
+                    ? "text-orange-500"
+                    : "text-slate-500 hover:text-orange-500"
+                }`}
+              >
+                <Bus size={16} /> Bus Timetable
+              </span>
+            </Link>
+
             <Link href="/about">
-              <span className="text-slate-500 hover:text-orange-500 transition-colors cursor-pointer">
+              <span
+                className={`cursor-pointer transition-colors ${
+                  location === "/about"
+                    ? "text-orange-500"
+                    : "text-slate-500 hover:text-orange-500"
+                }`}
+              >
                 About Us
               </span>
             </Link>
 
             <Link href="/auth">
-              <span className="text-slate-500 hover:text-orange-500 transition-colors cursor-pointer">
+              <span
+                className={`cursor-pointer transition-colors ${
+                  location === "/auth"
+                    ? "text-orange-500"
+                    : "text-slate-500 hover:text-orange-500"
+                }`}
+              >
                 Partner Login
               </span>
             </Link>
@@ -42,7 +69,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/auth">
               <Button
                 size="sm"
-                className="bg-orange-500 text-white rounded-xl shadow-md"
+                className="bg-orange-500 text-white rounded-xl shadow-md hover:bg-orange-600"
               >
                 List Your Shop
               </Button>
@@ -62,10 +89,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {isMenuOpen && (
           <div className="md:hidden border-t p-4 space-y-4 bg-white animate-in slide-in-from-top duration-200">
             <nav className="flex flex-col gap-4">
+              <Link href="/bus">
+                <span
+                  className={`text-sm font-bold flex items-center gap-2 cursor-pointer ${
+                    location === "/bus" ? "text-orange-500" : "text-slate-600"
+                  }`}
+                >
+                  <Bus size={18} /> Bus Timetable
+                </span>
+              </Link>
+
               <Link href="/about">
                 <span
-                  className="text-sm font-bold text-slate-600 cursor-pointer block"
-                  onClick={() => setIsMenuOpen(false)}
+                  className={`text-sm font-bold cursor-pointer ${
+                    location === "/about" ? "text-orange-500" : "text-slate-600"
+                  }`}
                 >
                   About Us
                 </span>
@@ -73,18 +111,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <Link href="/auth">
                 <span
-                  className="text-sm font-bold text-slate-600 cursor-pointer block"
-                  onClick={() => setIsMenuOpen(false)}
+                  className={`text-sm font-bold cursor-pointer ${
+                    location === "/auth" ? "text-orange-500" : "text-slate-600"
+                  }`}
                 >
                   Partner Login
                 </span>
               </Link>
 
               <Link href="/auth">
-                <Button
-                  className="w-full bg-orange-500 text-white font-bold rounded-xl"
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Button className="w-full bg-orange-500 text-white font-bold rounded-xl">
                   List Your Shop
                 </Button>
               </Link>
@@ -98,8 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* --- FOOTER SECTION --- */}
       <footer className="border-t py-16 bg-[#0B1221] text-slate-300 text-center md:text-left">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
-          {/* Brand Info */}
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div>
             <div className="mb-6">
               <img
@@ -108,83 +143,56 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 className="h-12 w-auto mx-auto md:mx-0"
               />
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Shahdol ka pehla hyperlocal marketplace. Hum local vyapariyon ko
-              digital takat dete hain.
+            <p className="text-sm text-slate-400">
+              Shahdol ka pehla marketplace.
             </p>
           </div>
 
-          {/* Company Links */}
           <div>
-            <Link href="/about">
-              <span className="block font-bold text-orange-500 mb-6 uppercase text-xs tracking-widest hover:underline cursor-pointer">
-                Company →
-              </span>
-            </Link>
+            <span className="block font-bold text-orange-500 mb-6 uppercase text-xs tracking-widest">
+              Quick Links
+            </span>
             <ul className="space-y-4 text-sm font-medium">
               <li>
-                <Link href="/about">
-                  <span className="hover:text-orange-500 transition-colors cursor-pointer block">
-                    About Us
+                <Link href="/bus">
+                  <span className="hover:text-orange-500 cursor-pointer">
+                    Bus Timetable
                   </span>
                 </Link>
               </li>
               <li>
-                <a
-                  href={`mailto:${myEmail}`}
-                  className="hover:text-orange-500 transition-colors"
-                >
-                  Contact Support
-                </a>
-              </li>
-              <li>
-                <Link href="/terms">
-                  <span className="hover:text-orange-500 transition-colors cursor-pointer block">
-                    Terms of Service
+                <Link href="/about">
+                  <span className="hover:text-orange-500 cursor-pointer">
+                    About Us
                   </span>
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Connect & Support */}
           <div>
             <h3 className="font-bold text-white mb-6 uppercase text-xs tracking-widest">
               Connect
             </h3>
-            <p className="text-sm text-slate-400 mb-6 font-bold">
-              Gandhi Chowk, Shahdol <br />
-              Madhya Pradesh - 484001
-            </p>
             <a
-              href={`https://wa.me/${myWhatsAppNumber}?text=Hi ShahdolBazaar, mujhe help chahiye.`}
+              href={`https://wa.me/${myWhatsAppNumber}`}
               target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-green-600 text-white text-xs font-bold py-3 px-6 rounded-2xl shadow-xl hover:bg-green-700 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 bg-green-600 text-white text-xs font-bold py-3 px-6 rounded-2xl shadow-xl hover:bg-green-700 transition-all"
             >
               <MessageCircle size={18} /> WhatsApp Support
             </a>
           </div>
 
-          {/* CTA Box */}
           <div className="bg-slate-800/30 p-6 rounded-3xl border border-slate-700">
             <h3 className="font-bold text-white mb-2 uppercase text-xs italic underline decoration-orange-500 underline-offset-8">
               Dukan Badhao
             </h3>
-            <p className="text-[10px] text-slate-400 my-4 text-center leading-relaxed">
-              List your shop today and reach 50,000+ local customers.
-            </p>
             <Link href="/auth">
-              <Button className="w-full bg-white text-slate-900 font-black rounded-xl text-xs mt-4 hover:bg-orange-500 hover:text-white transition-all shadow-lg shadow-black/20">
+              <Button className="w-full bg-white text-slate-900 font-black rounded-xl text-xs mt-4 hover:bg-orange-500 hover:text-white transition-all shadow-lg">
                 REGISTER NOW
               </Button>
             </Link>
           </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="container mx-auto px-4 mt-16 pt-8 border-t border-slate-800 text-[10px] font-bold text-slate-600 tracking-[0.3em] uppercase text-center">
-          © 2025 SHAHDOLBAZAAR • LEAD YOUR BUSINESS TO SUCCESS
         </div>
       </footer>
     </div>

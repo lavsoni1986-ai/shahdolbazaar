@@ -1,20 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta property="og:title" content="ShahdolBazaar - Hyperlocal Marketplace" />
-    <meta property="og:description" content="Your local market, online. Find groceries, medicines, electronics, and more in Shahdol." />
+    <meta
+      property="og:title"
+      content="ShahdolBazaar - Hyperlocal Marketplace"
+    />
+    <meta
+      property="og:description"
+      content="Your local market, online. Find groceries, medicines, electronics, and more in Shahdol."
+    />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://shahdolbazaar.com/favicon.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ShahdolBazaar" />
-    <meta name="twitter:description" content="Your local market, online. Find groceries, medicines, electronics, and more in Shahdol." />
+    <meta
+      name="twitter:description"
+      content="Your local market, online. Find groceries, medicines, electronics, and more in Shahdol."
+    />
+
+    <title>ShahdolBazaar - शहडोल का लोकल मार्केट</title>
 
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- WhatsApp CSS (Shop pages के लिए ready) -->
+    <style>
+      .whatsapp-float {
+        position: fixed !important;
+        width: 60px;
+        height: 60px;
+        bottom: 20px;
+        right: 15px;
+        background: linear-gradient(45deg, #25d366, #128c7e);
+        color: #fff;
+        border-radius: 50px;
+        font-size: 20px;
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        animation: pulse 2s infinite;
+      }
+      .whatsapp-float:hover {
+        transform: scale(1.1);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+      @media (max-width: 480px) {
+        .whatsapp-float {
+          width: 55px;
+          height: 55px;
+          font-size: 18px;
+          bottom: 15px;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
