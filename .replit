@@ -48,4 +48,3 @@ mockupState = "MOCKUP"
 [userenv]
 
 [userenv.shared]
-VITE_GEMINI_API_KEY = "AIzaSyDC7xgk1bzxNNxeFnKnHiXlLQwi5X96Aaw"

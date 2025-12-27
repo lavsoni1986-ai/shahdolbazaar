@@ -1,6 +1,6 @@
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react"; // ✅ FIXED: Correct import
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -11,7 +11,6 @@ import {
   Store,
 } from "lucide-react";
 
-// Shop ka data lane ke liye function
 const fetchShop = async (id: string) => {
   const res = await fetch(`/api/shops/${id}`);
   if (!res.ok) {
@@ -21,7 +20,6 @@ const fetchShop = async (id: string) => {
 };
 
 export default function ShopDetail() {
-  // ✅ ALL FIXES APPLIED
   const [, params] = useRoute("/shop/:id");
   const id = params?.id;
   const [imageError, setImageError] = useState(false);
@@ -53,7 +51,9 @@ export default function ShopDetail() {
   }
 
   const phone = shop.mobile?.replace(/\D/g, "");
-  const message = `Hello ${shop.name || "ShahdolBazaar"} से आपकी दुकान के बारे में जानना है!`;
+
+  // ✅ UPDATED MESSAGE: Ab ye "shahdolbazaar" kahega
+  const message = `Hello shahdolbazaar से आपकी दुकान के बारे में जानना है!`;
   const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
 
   const handleShare = async () => {
@@ -81,7 +81,7 @@ export default function ShopDetail() {
         className="min-h-screen bg-slate-50 pb-20"
         data-testid="shop-detail-page"
       >
-        {/* ✅ PERFECT Hero Image */}
+        {/* Hero Image */}
         <div className="relative h-48 sm:h-64 md:h-80 bg-slate-200 w-full">
           {!imageError && shop.image ? (
             <img
@@ -168,18 +168,19 @@ export default function ShopDetail() {
         </div>
       </div>
 
-      {/* 🔥 STICKY WHATSAPP */}
+      {/* 🔥 STICKY WHATSAPP (Side-by-side with AI) */}
       {shop?.mobile && (
         <a
           href={whatsappLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="whatsapp-float fixed bottom-5 right-5 p-3 rounded-full shadow-xl z-50 flex items-center justify-center hover:scale-110 transition-all"
+          // ✅ FIXED: WhatsApp ko right-6 par rakha hai
+          className="whatsapp-float fixed bottom-6 right-6 p-3 rounded-full shadow-xl z-50 flex items-center justify-center hover:scale-110 transition-all border-2 border-white"
           title={`Chat with ${shop.name} on WhatsApp`}
           aria-label={`Chat with ${shop.name} on WhatsApp`}
           style={{ background: "#25D366", width: "64px", height: "64px" }}
         >
-          <MessageCircle size={24} />
+          <MessageCircle size={32} className="text-white" />
         </a>
       )}
     </>

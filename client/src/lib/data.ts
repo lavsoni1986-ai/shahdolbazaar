@@ -67,7 +67,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: "4",
-    name: "Restaurants & Hotels",
+    name: "Restaurants",
     icon: Utensils,
     color: "bg-orange-100 text-orange-600",
     slug: "restaurants",

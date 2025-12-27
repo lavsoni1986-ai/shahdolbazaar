@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,6 +41,37 @@ export default function AuthPage() {
     defaultValues: { username: "", password: "" },
   });
 
+  // Check if user is already logged in and redirect appropriately
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        const isAdmin = userData.isAdmin === true || userData.role === "admin";
+        const userRole = userData.role || "customer";
+        
+        // Get return URL from query params
+        const params = new URLSearchParams(window.location.search);
+        const returnUrl = params.get("return");
+        
+        if (returnUrl) {
+          // If there's a return URL, go there
+          setLocation(returnUrl);
+        } else if (isAdmin || userRole === "admin") {
+          // Admin goes to admin panel
+          setLocation("/admin");
+        } else if (userRole === "seller") {
+          // Seller goes to partner dashboard
+          setLocation("/partner");
+        }
+        // Otherwise stay on auth page
+      } catch (e) {
+        // Invalid user data, stay on auth page
+        console.error("Error parsing user data:", e);
+      }
+    }
+  }, [setLocation]);
+
   // ✅ Agar sab sahi hai to ye chalega
   const onSubmit = async (data: z.infer<typeof authSchema>) => {
     console.log("🔵 Button Clicked! Data:", data); // Debugging
@@ -52,7 +83,7 @@ export default function AuthPage() {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, role: "partner" }),
+        body: JSON.stringify({ ...data, role: "customer" }),
       });
 
       const result = await response.json();
@@ -63,16 +94,89 @@ export default function AuthPage() {
 
       // Success
       console.log("🟢 Success:", result);
-      localStorage.setItem("user", JSON.stringify(result));
+      
+      // MANUAL SESSION OVERRIDE: If username is 'admin', manually save admin session
+      let finalUser = result;
+      const isAdminUser = result.username === "admin" || result.role === "admin" || result.isAdmin === true;
+      
+      if (isAdminUser || result.username === "admin") {
+        // MANUAL SESSION OVERRIDE: Explicitly set admin flags
+        finalUser = {
+          ...result,
+          role: "admin",
+          isAdmin: true,
+        };
+        console.log("🔵 [AUTH] Admin user detected - manually overriding session");
+      }
+      
+      // MANUAL SESSION OVERRIDE: Double-check and force save admin session
+      if (result.username === "admin") {
+        const adminSession = {
+          id: result.id || 1,
+          username: "admin",
+          role: "admin",
+          isAdmin: true,
+          ...result, // Include any other fields from API
+        };
+        localStorage.setItem("user", JSON.stringify(adminSession));
+        console.log("✅ [AUTH] Manual admin session saved:", adminSession);
+        finalUser = adminSession;
+      } else {
+        // SAVE SESSION FIRST before redirect
+        localStorage.setItem("user", JSON.stringify(finalUser));
+        console.log("✅ [AUTH] User session saved to localStorage:", finalUser.username, "isAdmin:", finalUser.isAdmin);
+      }
 
       toast({
         title: activeTab === "login" ? "Welcome Back!" : "Account Created!",
         description: "Dashboard khul raha hai...",
       });
 
-      setTimeout(() => {
-        setLocation("/partner/dashboard");
-      }, 1000);
+      // IMMEDIATE ADMIN REDIRECT: Check admin first, before return URL
+      if (isAdminUser || finalUser.isAdmin === true || finalUser.role === "admin" || result.username === "admin") {
+        console.log("🔵 [AUTH] Admin user - FORCING admin session and redirecting");
+        
+        // LOCAL STORAGE FORCE: Explicitly save admin session
+        localStorage.setItem('user', JSON.stringify({
+          username: 'admin',
+          role: 'admin',
+          isAdmin: true,
+          id: result.id || 1,
+          ...result
+        }));
+        
+        console.log("✅ [AUTH] Admin session forced in localStorage");
+        
+        // Hard redirect using window.location.href
+        window.location.href = '/admin';
+        return; // Exit early
+      }
+
+      // Redirect based on role - check return URL first
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get("return");
+      
+      const userRole = finalUser.role || "customer";
+      
+      console.log("🔵 [AUTH] User role:", userRole, "returnUrl:", returnUrl);
+      
+      // If there's a return URL, use it
+      if (returnUrl) {
+        console.log("🔵 [AUTH] Redirecting to return URL:", returnUrl);
+        setTimeout(() => {
+          window.location.href = returnUrl;
+        }, 100);
+      } else if (userRole === "seller") {
+        console.log("🔵 [AUTH] Redirecting to /partner");
+        setTimeout(() => {
+          window.location.href = "/partner";
+        }, 100);
+      } else {
+        console.log("🔵 [AUTH] Redirecting to /partner (default)");
+        setTimeout(() => {
+          window.location.href = "/partner";
+        }, 100);
+      }
     } catch (error: any) {
       console.error("🔴 Error:", error);
       toast({

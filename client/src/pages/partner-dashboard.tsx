@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import {
   Store,
@@ -39,609 +48,946 @@ import {
   Plus,
   Trash2,
   X,
+  ImageIcon,
+  Package,
+  TrendingUp,
+  Menu,
+  Home,
+  Settings,
+  BarChart3,
 } from "lucide-react";
 
-// Categories
-const categories = [
-  { id: 1, name: "Grocery" },
-  { id: 2, name: "Electronics" },
-  { id: 3, name: "Clothing" },
-  { id: 4, name: "Medical" },
-  { id: 5, name: "Restaurant" },
-  { id: 6, name: "Salon" },
-  { id: 7, name: "Other" },
+// Shahdol Local Categories
+const shopCategories = [
+  "Kirana Store",
+  "Mobile & Electronics",
+  "Cloth House",
+  "MEDICAL",
+  "Restaurant & Cafe",
+  "Saloons & Parlour",
+  "Hardware & Paints",
+  "Other",
 ];
 
-// ✅ Shop Schema with better validation
+const productCategories = [
+  "Groceries",
+  "Electronics",
+  "Clothing",
+  "Medicines",
+  "Food & Beverages",
+  "Beauty & Personal Care",
+  "Hardware",
+  "Other",
+];
+
+/* --- SCHEMAS --- */
 const shopFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Shop name at least 2 characters")
-    .max(50, "Shop name max 50 characters"),
-  category: z.string().min(1, "Category is required"),
+  name: z.string().min(2, "Shop name kam se kam 2 characters ka ho"),
+  category: z.string().min(1, "Category chunnana zaroori hai"),
   mobile: z
     .string()
-    .regex(/^\d{10}$/, "Mobile number must be 10 digits"),
-  address: z.string().min(5, "Address at least 5 characters").optional(),
-  description: z.string().min(10, "Description at least 10 characters").optional(),
-  image: z.string().url("Invalid image URL").optional().or(z.literal("")),
+    .regex(/^\d{10}$/, "Mobile number 10 digits ka hona chahiye"),
+  address: z.string().min(5, "Pura pata (address) likhein"),
+  description: z
+    .string()
+    .min(10, "Dukan ke baare mein kam se kam 10 shabd likhein"),
+  image: z
+    .string()
+    .url("Sahi Photo Link (URL) dalein")
+    .optional()
+    .or(z.literal("")),
 });
 
-type ShopFormValues = z.infer<typeof shopFormSchema>;
-
-// ✅ Product/Offer Schema
 const productSchema = z.object({
-  name: z.string().min(2, "Product name at least 2 characters"),
-  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Valid price required"),
+  name: z.string().min(2, "Product ka naam zaroori hai"),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Sahi keemat (price) dalein"),
+  category: z.string().min(1, "Category chunnana zaroori hai"),
   description: z.string().optional(),
+  imageUrl: z
+    .string()
+    .url("Sahi Photo Link dalein")
+    .optional()
+    .or(z.literal("")),
 });
-
-type ProductFormValues = z.infer<typeof productSchema>;
 
 export default function PartnerDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [checkingShop, setCheckingShop] = useState(true);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const queryClient = useQueryClient();
   const [showEditForm, setShowEditForm] = useState(false);
-  const [shopId, setShopId] = useState<number | null>(null);
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'analytics' | 'settings'>('dashboard');
 
-  // Safe User Parsing
-  let user: any = null;
-  try {
-    const userStr = localStorage.getItem("user");
-    user = userStr ? JSON.parse(userStr) : null;
-  } catch (e) {
-    localStorage.removeItem("user");
-  }
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const authHeaders = {
+    "Content-Type": "application/json",
+    "x-user-id": user?.id?.toString() || "",
+  };
 
-  // Shop Form Setup
-  const form = useForm<ShopFormValues>({
-    resolver: zodResolver(shopFormSchema),
-    defaultValues: {
-      name: "",
-      category: categories[0]?.name || "",
-      description: "",
-      address: "",
-      mobile: "",
-      image: "",
+  // 1. Fetch Shop - MUST be declared before any useEffect that uses it
+  const { data: shop, isLoading: shopLoading } = useQuery({
+    queryKey: ["/api/partner/shop"],
+    queryFn: async () => {
+      const res = await fetch("/api/partner/shop", { headers: authHeaders });
+      return res.ok ? res.json() : null;
     },
+    enabled: !!user?.id, // Only fetch if user exists
   });
 
-  // Product Form Setup
-  const productForm = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: "",
-      price: "",
-      description: "",
-    },
-  });
-
-  // Check Existing Shop
   useEffect(() => {
     if (!user) {
       setLocation("/auth");
       return;
     }
+    // DISABLED REDIRECT CHECK: Temporarily allow all authenticated users
+    // Allow access if user is seller or admin - don't redirect even if shop doesn't exist
+    // User can create shop from the dashboard
+    // if (user.role !== "seller" && user.role !== "admin") {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Access Denied",
+    //     description: "You need to be a verified seller to access this dashboard.",
+    //   });
+    //   setLocation("/seller-onboarding");
+    //   return;
+    // }
+  }, [user, setLocation, toast]);
 
-    async function checkExistingShop() {
-      try {
-        const res = await fetch(`/api/partner/shop/${user.id}`);
-        if (res.status === 404) {
-          setCheckingShop(false);
-          return;
-        }
-
-        const data = await res.json();
-        if (data && data.id) {
-          console.log("✅ Shop Found:", data);
-          setIsEditMode(true);
-          setShopId(data.id);
-          setShowEditForm(false); // Hide form by default in edit mode
-
-          form.reset({
-            name: data.name,
-            category: data.category,
-            description: data.description || "",
-            address: data.address || "",
-            mobile: data.mobile,
-            image: data.image || "",
+  // Auto-create shop if seller but no shop exists (separate effect to avoid dependency issues)
+  useEffect(() => {
+    // ENSURE SHOP CREATION: Always try to create shop if user exists and no shop found
+    if (user?.id && !shop && !shopLoading) {
+      console.log("🔄 Auto-creating default shop for user:", user.id);
+      // Try to auto-create a default shop
+      const createDefaultShop = async () => {
+        try {
+          console.log("📞 Calling /api/partner/shop/create-default");
+          const res = await fetch("/api/partner/shop/create-default", {
+            method: "POST",
+            headers: authHeaders,
           });
+          console.log("✅ Shop creation response:", res.status, res.ok);
+          if (res.ok) {
+            const createdShop = await res.json();
+            console.log("✅ Shop created:", createdShop);
+            queryClient.invalidateQueries({ queryKey: ["/api/partner/shop"] });
+          } else {
+            const error = await res.json();
+            console.error("❌ Shop creation failed:", error);
+          }
+        } catch (error) {
+          console.error("❌ Failed to create default shop:", error);
         }
-      } catch (error) {
-        console.log("Create Mode Active");
-      } finally {
-        setCheckingShop(false);
-      }
+      };
+      createDefaultShop();
     }
+  }, [user, shop, shopLoading, authHeaders, queryClient]);
 
-    checkExistingShop();
-  }, [user, setLocation, form]);
-
-  // Submit Shop Handler
-  const onSubmit = async (data: ShopFormValues) => {
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      const url = isEditMode ? `/api/shops/${shopId}` : "/api/shops";
-      const method = isEditMode ? "PATCH" : "POST";
-      const payload = { ...data, ownerId: user.id };
-
-      const res = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+  // 2. Fetch Products
+  const { data: products = [] } = useQuery({
+    queryKey: ["/api/products", shop?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/products?shopId=${shop?.id}`, {
+        headers: authHeaders,
       });
+      return res.json();
+    },
+    enabled: !!shop?.id,
+  });
 
-      if (!res.ok) throw new Error("Failed to save shop");
-      const savedShop = await res.json();
+  const form = useForm<z.infer<typeof shopFormSchema>>({
+    resolver: zodResolver(shopFormSchema),
+  });
+  const productForm = useForm<z.infer<typeof productSchema>>({
+    resolver: zodResolver(productSchema),
+  });
 
-      if (!isEditMode) {
-        setIsEditMode(true);
-        setShopId(savedShop.id);
-        setShowEditForm(false);
+  useEffect(() => {
+    if (shop) {
+      form.reset({
+        name: shop.name || "",
+        category: shop.category || "",
+        mobile: shop.mobile || shop.phone || "",
+        address: shop.address || "",
+        description: shop.description || "",
+        image: shop.image || "",
+      });
+    }
+  }, [shop, form]);
+
+  const shopMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const shopId = shop?.id;
+      const res = await fetch(shopId ? `/api/shops/${shopId}` : "/api/shops", {
+        method: shopId ? "PATCH" : "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ ...data, ownerId: user?.id }),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/partner/shop"] });
+      setShowEditForm(false);
+      toast({ title: "Shop details saved successfully! ✅" });
+    },
+  });
+
+  const addProductMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!shop?.id) {
+        throw new Error("Shop not found. Please set up your shop first.");
       }
-
-      toast({
-        title: isEditMode ? "Shop Updated! ✏️" : "Shop Created! 🎉",
-        description: "Your shop details are saved.",
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          ...data,
+          shopId: shop.id,
+          sellerId: user?.id,
+        }),
       });
-    } catch (error) {
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to add product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products", shop?.id] });
+      setShowProductDialog(false);
+      productForm.reset();
+      toast({ title: "Product added! 🛍️" });
+    },
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save shop.",
+        description: error.message || "Failed to add product. Please try again.",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  // Add Product Handler
-  const onAddProduct = async (data: ProductFormValues) => {
-    if (!shopId) return;
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      if (!res.ok) throw new Error("Delete failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products", shop?.id] });
+      toast({ title: "Product removed" });
+    },
+  });
 
-    const newProduct = {
-      id: Date.now(),
-      ...data,
-      shopId,
-    };
-
-    setProducts([...products, newProduct]);
-    productForm.reset();
-    setShowProductDialog(false);
-
-    toast({
-      title: "Product Added! ✅",
-      description: `${data.name} added to your shop.`,
-    });
-  };
-
-  // Remove Product Handler
-  const removeProduct = (id: number) => {
-    setProducts(products.filter((p) => p.id !== id));
-    toast({
-      title: "Product Removed",
-      description: "Product deleted from your shop.",
-    });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setLocation("/auth");
-  };
-
-  if (checkingShop) {
+  // Show loading spinner while fetching shop data
+  if (shopLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-8 w-8 text-orange-500" />
+        <Loader2 className="animate-spin text-orange-500 h-8 w-8" />
       </div>
     );
   }
 
+  // Calculate summary stats - safely handle undefined shop
+  const totalProducts = products?.length || 0;
+  const totalValue = (products || []).reduce(
+    (sum: number, p: any) => sum + parseFloat(p.price || 0),
+    0,
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
-      <header className="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <Store className="text-orange-500" />
-          <h1 className="font-bold text-lg">Partner Dashboard</h1>
+    <div className="min-h-screen bg-slate-50 font-sans flex">
+      {/* Sidebar */}
+      <aside
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } fixed md:static md:translate-x-0 z-40 w-64 bg-white border-r border-slate-200 h-screen transition-transform duration-300 ease-in-out`}
+      >
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-2 font-bold text-lg text-slate-800">
+            <Store className="text-orange-500" size={24} />
+            <span className="hidden md:block">Partner Dashboard</span>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className="text-red-500"
-          data-testid="button-logout"
-        >
-          <LogOut size={18} className="mr-1" /> Logout
-        </Button>
-      </header>
+        <nav className="p-4 space-y-2">
+          <button
+            onClick={() => {
+              setActiveTab('dashboard');
+              setSidebarOpen(false); // Close mobile sidebar on click
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+              activeTab === 'dashboard'
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-slate-700 hover:bg-orange-50 hover:text-orange-600'
+            }`}
+          >
+            <Home size={20} />
+            <span>Dashboard</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('products');
+              setSidebarOpen(false); // Close mobile sidebar on click
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+              activeTab === 'products'
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-slate-700 hover:bg-orange-50 hover:text-orange-600'
+            }`}
+          >
+            <Package size={20} />
+            <span>Products</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('analytics');
+              setSidebarOpen(false); // Close mobile sidebar on click
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+              activeTab === 'analytics'
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-slate-700 hover:bg-orange-50 hover:text-orange-600'
+            }`}
+          >
+            <BarChart3 size={20} />
+            <span>Analytics</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('settings');
+              setSidebarOpen(false); // Close mobile sidebar on click
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+              activeTab === 'settings'
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-slate-700 hover:bg-orange-50 hover:text-orange-600'
+            }`}
+          >
+            <Settings size={20} />
+            <span>Settings</span>
+          </button>
+        </nav>
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
+          <Button
+            variant="ghost"
+            className="w-full text-red-500 font-medium justify-start"
+            onClick={() => {
+              localStorage.removeItem("user");
+              queryClient.clear();
+              setLocation("/auth");
+            }}
+          >
+            <LogOut size={18} className="mr-2" /> Logout
+          </Button>
+        </div>
+      </aside>
 
-      <main className="p-4 max-w-2xl mx-auto space-y-8">
-        {/* Status Alert */}
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
         <div
-          className={`border p-4 rounded-xl flex gap-3 items-start ${
-            isEditMode
-              ? "bg-green-50 border-green-200"
-              : "bg-orange-50 border-orange-200"
-          }`}
-          data-testid="status-alert"
-        >
-          {isEditMode ? (
-            <>
-              <CheckCircle2 className="text-green-600 shrink-0 mt-1" />
-              <div>
-                <h2 className="font-bold text-green-800">Shop is Live ✅</h2>
-                <p className="text-sm text-green-700">
-                  Your shop is active and visible to customers.
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <Store className="text-orange-600 shrink-0 mt-1" />
-              <div>
-                <h2 className="font-bold text-orange-800">Welcome Partner!</h2>
-                <p className="text-sm text-orange-700">
-                  Fill in your shop details to get started.
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {/* Shop Details Section */}
-        {isEditMode && !showEditForm && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-2xl font-bold">{form.getValues("name")}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {form.getValues("category")} • {form.getValues("mobile")}
-                </p>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-20 border-b">
+          <div className="flex items-center gap-4">
+            <button
+              className="md:hidden p-2 hover:bg-slate-100 rounded-lg"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <Menu size={24} />
+            </button>
+            <h1 className="text-xl font-bold text-slate-800">
+              {shop?.name || "Partner Dashboard"}
+            </h1>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 p-4 md:p-6 space-y-6">
+          {/* Conditional Rendering Based on Active Tab */}
+          {activeTab === 'dashboard' && (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 font-medium">
+                    Total Products
+                  </p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                    {totalProducts}
+                  </p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <Package className="text-orange-600" size={24} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 font-medium">
+                    Shop Status
+                  </p>
+                  <p className="text-lg font-bold text-green-600 mt-2 flex items-center gap-2">
+                    {shop ? (
+                      <>
+                        <CheckCircle2 size={20} /> Live
+                      </>
+                    ) : (
+                      "Not Setup"
+                    )}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <Store className="text-green-600" size={24} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-600 font-medium">
+                    Total Value
+                  </p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                    ₹{totalValue.toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <TrendingUp className="text-blue-600" size={24} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Shop Info Section */}
+          {!shop || showEditForm ? (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
+              {shop && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-4"
+                  onClick={() => setShowEditForm(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
+              <h2 className="text-xl font-bold text-slate-800 mb-4">
+                {shop ? "Edit Shop Details" : "Setup Your Shop"}
+              </h2>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit((d) => shopMutation.mutate(d))}
+                  className="space-y-4"
+                >
+                  <FormField
+                    name="name"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Shop Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="category"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Category</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Category Chunein" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-white border shadow-xl z-[100]">
+                            {shopCategories.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="mobile"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">
+                          Mobile Number
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} maxLength={10} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="image"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">
+                          Shop Photo URL (Link)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="https://example.com/dukan.jpg"
+                          />
+                        </FormControl>
+                        {field.value && (
+                          <div className="mt-2 relative h-32 w-full rounded-lg overflow-hidden border">
+                            <img
+                              src={field.value}
+                              className="h-full w-full object-cover"
+                              alt="Shop preview"
+                            />
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="address"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="description"
+                    control={form.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold">
+                          About Shop
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Dukan ke baare mein..."
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-orange-600 h-12 text-lg font-bold shadow-lg hover:bg-orange-700"
+                    disabled={shopMutation.isPending}
+                  >
+                    {shopMutation.isPending ? (
+                      <Loader2 className="animate-spin mr-2" />
+                    ) : (
+                      "Shop Details Save Karein"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          ) : (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex gap-4 items-center">
+                <div className="h-16 w-16 bg-slate-100 rounded-xl overflow-hidden border flex items-center justify-center shrink-0">
+                  {shop?.image ? (
+                    <img
+                      src={shop.image}
+                      className="h-full w-full object-cover"
+                      alt={shop?.name || "Shop"}
+                    />
+                  ) : (
+                    <Store className="text-slate-400 h-8 w-8" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                    {shop?.name || "Shop"}
+                  </h2>
+                  <p className="text-slate-500 font-medium">
+                    {shop?.category || "N/A"} • {shop?.mobile || shop?.phone || "N/A"}
+                  </p>
+                </div>
               </div>
               <Button
                 onClick={() => setShowEditForm(true)}
-                className="bg-orange-500 text-white"
-                data-testid="button-edit-shop"
+                variant="outline"
+                className="rounded-full shadow-sm"
               >
-                <Edit size={18} className="mr-2" /> Edit
+                <Edit size={16} className="mr-2" /> Edit Info
               </Button>
             </div>
+          )}
+            </>
+          )}
 
-            <div className="grid md:grid-cols-2 gap-6 text-sm">
-              <div>
-                <p className="text-muted-foreground font-semibold mb-1">
-                  Address
-                </p>
-                <p>{form.getValues("address") || "Not provided"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground font-semibold mb-1">
-                  Description
-                </p>
-                <p className="line-clamp-2">
-                  {form.getValues("description") || "Not provided"}
-                </p>
-              </div>
-            </div>
-
-            {form.getValues("image") && (
-              <img
-                src={form.getValues("image")}
-                alt="Shop"
-                className="mt-6 w-full h-48 object-cover rounded-lg"
-              />
-            )}
-          </div>
-        )}
-
-        {/* Edit Form - Toggle Show/Hide */}
-        {(showEditForm || !isEditMode) && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">
-                {isEditMode ? "Edit Shop Details ✏️" : "Create New Shop ✨"}
-              </h2>
-              {isEditMode && showEditForm && (
-                <button
-                  onClick={() => setShowEditForm(false)}
-                  className="text-muted-foreground hover:text-foreground"
+          {activeTab === 'products' && shop && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+                  Products & Offers
+                </h2>
+                <Dialog
+                  open={showProductDialog}
+                  onOpenChange={setShowProductDialog}
                 >
-                  <X size={24} />
-                </button>
-              )}
-            </div>
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-                data-testid="form-shop-details"
-              >
-                {/* Shop Name */}
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Shop Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., Fresh Vegetables Store"
-                          {...field}
-                          data-testid="input-shop-name"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Category */}
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Category</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-category">
-                            <SelectValue placeholder="Select Category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.name}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Mobile */}
-                <FormField
-                  control={form.control}
-                  name="mobile"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">
-                        Mobile Number
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="9876543210"
-                          {...field}
-                          data-testid="input-mobile"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Address */}
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Address</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Your shop address..."
-                          {...field}
-                          data-testid="textarea-address"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Description */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Tell customers about your shop..."
-                          {...field}
-                          data-testid="textarea-description"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Image */}
-                <FormField
-                  control={form.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Image Link</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="https://example.com/image.jpg"
-                          {...field}
-                          data-testid="input-image"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full bg-orange-500 text-white py-6 text-lg font-bold"
-                  disabled={loading}
-                  data-testid="button-save-shop"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : isEditMode ? (
-                    "Save Changes ✏️"
-                  ) : (
-                    "Publish My Shop 🚀"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </div>
-        )}
-
-        {/* Products/Offers Section - Only Show When Shop Exists */}
-        {isEditMode && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Products & Offers</h2>
-              <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
-                <DialogTrigger asChild>
-                  <Button className="bg-green-600 text-white" data-testid="button-add-product">
-                    <Plus size={18} className="mr-2" /> Add Product
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
-                    <DialogDescription>
-                      Add a product or offer to your shop
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <Form {...productForm}>
-                    <form
-                      onSubmit={productForm.handleSubmit(onAddProduct)}
-                      className="space-y-4"
-                      data-testid="form-add-product"
-                    >
-                      <FormField
-                        control={productForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Product Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., Fresh Tomatoes"
-                                {...field}
-                                data-testid="input-product-name"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={productForm.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Price (₹)</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="99.99"
-                                {...field}
-                                data-testid="input-product-price"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={productForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description (Optional)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Product details..."
-                                {...field}
-                                data-testid="textarea-product-description"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button
-                        type="submit"
-                        className="w-full bg-green-600"
-                        data-testid="button-save-product"
-                      >
-                        Add Product ✅
-                      </Button>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Products List */}
-            {products.length > 0 ? (
-              <div className="space-y-3">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex justify-between items-start p-4 border rounded-lg hover:bg-slate-50 transition-colors"
-                    data-testid={`product-item-${product.id}`}
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        ₹{product.price}
-                      </p>
-                      {product.description && (
-                        <p className="text-xs text-gray-500 line-clamp-1">
-                          {product.description}
-                        </p>
-                      )}
-                    </div>
+                  <DialogTrigger asChild>
                     <Button
-                      variant="ghost"
                       size="sm"
-                      onClick={() => removeProduct(product.id)}
-                      className="text-red-500 hover:text-red-700"
-                      data-testid={`button-delete-product-${product.id}`}
+                      className="bg-green-600 shadow-md hover:bg-green-700"
                     >
-                      <Trash2 size={18} />
+                      <Plus size={18} className="mr-1" /> Add Product
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-white rounded-3xl max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">
+                        Add New Product
+                      </DialogTitle>
+                      <DialogDescription>Naya saaman jodein.</DialogDescription>
+                    </DialogHeader>
+                    <Form {...productForm}>
+                      <form
+                        onSubmit={productForm.handleSubmit((d) =>
+                          addProductMutation.mutate(d),
+                        )}
+                        className="space-y-4 pt-2"
+                      >
+                        <FormField
+                          name="name"
+                          control={productForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-bold">
+                                Item Name
+                              </FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g. Fresh Milk" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          name="category"
+                          control={productForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-bold">
+                                Category
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="Category Chunein" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="bg-white border shadow-xl z-[100]">
+                                  {productCategories.map((c) => (
+                                    <SelectItem key={c} value={c}>
+                                      {c}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          name="price"
+                          control={productForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-bold">
+                                Keemat (₹)
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="number"
+                                  inputMode="decimal"
+                                  placeholder="99"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          name="imageUrl"
+                          control={productForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-bold">
+                                Photo Link (URL)
+                              </FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="https://..." />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          name="description"
+                          control={productForm.control}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-bold">
+                                Details (Optional)
+                              </FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  placeholder="e.g. 500ml packet"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="submit"
+                          className="w-full bg-green-600 h-12 text-md font-bold shadow-md hover:bg-green-700"
+                          disabled={addProductMutation.isPending}
+                        >
+                          {addProductMutation.isPending ? (
+                            <Loader2 className="animate-spin" />
+                          ) : (
+                            "Item Publish Karein"
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Products Table */}
+              <div className="overflow-x-auto">
+                {!products || products.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                    <p className="text-slate-400 font-medium italic">
+                      Abhi tak koi item nahi hai. Item jodne ke liye 'Add
+                      Product' click karein.
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Image</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Category
+                        </TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Description
+                        </TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((p: any) => (
+                        <TableRow key={p.id}>
+                          <TableCell>
+                            <div className="h-12 w-12 bg-white rounded-lg overflow-hidden border flex items-center justify-center shrink-0">
+                              {p.imageUrl || p.image ? (
+                                <img
+                                  src={p.imageUrl || p.image}
+                                  className="h-full w-full object-cover"
+                                  alt={p.name}
+                                />
+                              ) : (
+                                <ImageIcon className="text-slate-300 h-6 w-6" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {p.category || "N/A"}
+                          </TableCell>
+                          <TableCell className="font-bold text-green-700">
+                            ₹{p.price}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-slate-600 max-w-xs truncate">
+                            {p.description || "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    "Kya aap is item ko delete karna chahte hain?",
+                                  )
+                                ) {
+                                  deleteProductMutation.mutate(p.id);
+                                }
+                              }}
+                              className="text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                              disabled={deleteProductMutation.isPending}
+                            >
+                              <Trash2 size={18} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-800 mb-6">Analytics & Reports</h2>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-800">Total Views</h3>
+                      <TrendingUp className="text-orange-600" size={24} />
+                    </div>
+                    <p className="text-3xl font-black text-orange-600">0</p>
+                    <p className="text-sm text-slate-600 mt-2">Shop profile views</p>
+                  </div>
+                  <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-800">Orders</h3>
+                      <Package className="text-green-600" size={24} />
+                    </div>
+                    <p className="text-3xl font-black text-green-600">0</p>
+                    <p className="text-sm text-slate-600 mt-2">Total orders received</p>
+                  </div>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                  <h3 className="font-bold text-slate-800 mb-4">Coming Soon</h3>
+                  <p className="text-slate-600">
+                    Detailed analytics including sales trends, popular products, and customer insights will be available here.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-800 mb-6">Settings</h2>
+              <div className="space-y-6">
+                {shop ? (
+                  <>
+                    <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                      <h3 className="font-bold text-slate-800 mb-4">Shop Information</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Shop Name:</span>
+                          <span className="font-bold text-slate-900">{shop.name}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Category:</span>
+                          <span className="font-bold text-slate-900">{shop.category}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Phone:</span>
+                          <span className="font-bold text-slate-900">{shop.mobile || shop.phone || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Status:</span>
+                          <span className="font-bold text-green-600 flex items-center gap-2">
+                            <CheckCircle2 size={16} /> {shop.approved ? 'Approved' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => setShowEditForm(true)}
+                        variant="outline"
+                        className="mt-4 w-full"
+                      >
+                        <Edit size={16} className="mr-2" /> Edit Shop Details
+                      </Button>
+                    </div>
+                    <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                      <h3 className="font-bold text-slate-800 mb-4">Account Settings</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Username:</span>
+                          <span className="font-bold text-slate-900">{user?.username || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 font-medium">Role:</span>
+                          <span className="font-bold text-slate-900 capitalize">{user?.role || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-6 bg-orange-50 rounded-xl border border-orange-200">
+                    <p className="text-slate-700 font-medium mb-4">
+                      Please set up your shop first to access settings.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setShowEditForm(true);
+                        setActiveTab('dashboard');
+                      }}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      Setup Shop
                     </Button>
                   </div>
-                ))}
+                )}
               </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="mb-4">No products added yet</p>
-                <p className="text-sm">
-                  Add your first product to showcase it to customers
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

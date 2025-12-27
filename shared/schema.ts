@@ -10,26 +10,27 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// --- USERS TABLE ---
+/* ===================== USERS ===================== */
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").default("partner").notNull(), // 'admin' or 'partner'
+  role: text("role").default("customer").notNull(), // customer | seller | admin
+  isAdmin: boolean("is_admin").default(false).notNull(), // Admin flag for easier checking
 });
 
-// --- SHOPS TABLE ---
+/* ===================== SHOPS ===================== */
 export const shops = pgTable("shops", {
   id: serial("id").primaryKey(),
-  // ✅ NEW: Ye batayega ki dukan ka maalik kaun hai
-  ownerId: integer("owner_id"),
-
+  // shop owner (seller)
+  ownerId: integer("owner_id").notNull(),
   name: text("name").notNull(),
   category: text("category").notNull(),
   description: text("description"),
-  address: text("address"),
-  mobile: text("mobile").notNull(),
-  image: text("image"),
+  address: text("address"), // Shahdol local areas
+  phone: text("phone").notNull(), // Phone number
+  mobile: text("mobile").notNull(), // Keep for backward compatibility
+  image: text("image"), // Cloudinary URL ke liye
 
   rating: doublePrecision("rating").default(0),
   reviewCount: integer("review_count").default(0),
@@ -37,23 +38,70 @@ export const shops = pgTable("shops", {
 
   isFeatured: boolean("is_featured").default(false),
   approved: boolean("approved").default(true),
+  isVerified: boolean("is_verified").default(false), // Admin verification
+
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-// --- SCHEMAS (Validation ke liye) ---
+/* ===================== PRODUCTS ===================== */
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  shopId: integer("shop_id").notNull(),
+  sellerId: integer("seller_id").notNull(), // Direct reference to seller (user id)
+  name: text("name").notNull(),
+  price: text("price").notNull(),
+  imageUrl: text("image_url"), // Cloudinary/Image upload support ke liye
+  category: text("category").notNull(), // Product category
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
-// ✅ FIX: .omit({ id: true }) joda gaya.
-// Ab Zod validation ID nahi mangega (kyunki database wo khud banata hai)
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+/* ===================== OFFERS & NEWS ===================== */
+export const offers = pgTable("offers", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
+/* ===================== ZOD SCHEMAS ===================== */
+
+/* USER */
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+/* SHOP */
 export const insertShopSchema = createInsertSchema(shops).omit({
   id: true,
   rating: true,
   reviewCount: true,
   avgRating: true,
   approved: true,
+  isVerified: true,
+  createdAt: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type InsertShop = z.infer<typeof insertShopSchema>;
 export type Shop = typeof shops.$inferSelect;
+
+/* PRODUCT ✅ FIXED EXPORT */
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
+
+/* OFFER */
+export const insertOfferSchema = createInsertSchema(offers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOffer = z.infer<typeof insertOfferSchema>;
+export type Offer = typeof offers.$inferSelect;

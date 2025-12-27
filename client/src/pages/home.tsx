@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useState, useCallback } from "react";
+import { Link, useLocation } from "wouter";
 import {
   Star,
   Search,
@@ -8,8 +8,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ShoppingCart,
 } from "lucide-react";
 import { CATEGORIES } from "@/lib/data";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 // --- TYPE DEFINITION ---
 type Shop = {
@@ -24,90 +27,269 @@ type Shop = {
   isFeatured?: boolean;
 };
 
+type Product = {
+  id: string | number;
+  name: string;
+  price: string;
+  category: string;
+  imageUrl?: string;
+  description?: string;
+  shopId: number;
+};
+
+type Offer = {
+  id: number;
+  content: string;
+};
+
+// ==========================================
+// PRODUCT CARD - DEFINED OUTSIDE HOME
+// ZERO HOOKS - PURE STATELESS COMPONENT
+// ==========================================
+function ProductCard({
+  product,
+  onAddToCart,
+}: {
+  product: Product;
+  onAddToCart: (product: Product) => void;
+}) {
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onAddToCart(product);
+  };
+
+  return (
+    <Link href={`/product/${product.id}`}>
+      <div className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 relative flex flex-col h-full cursor-pointer">
+        {/* Product Image - Clickable */}
+        <div className="h-48 overflow-hidden relative bg-slate-50">
+          <img
+            src={
+              product.imageUrl ||
+              "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&q=80&w=400"
+            }
+            loading="lazy"
+            alt={product.name}
+            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        </div>
+        <div className="p-5 flex flex-col flex-1">
+          {/* Product Info - Clickable */}
+          <div className="mb-2 flex-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              {product.category}
+            </p>
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-2 mb-2 min-h-[3.5rem]">
+              {product.name}
+            </h3>
+            {product.description && (
+              <p className="text-xs text-slate-500 line-clamp-2 mb-3">
+                {product.description}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black text-orange-500">
+                ₹{parseFloat(product.price).toLocaleString()}
+              </span>
+            </div>
+            <button
+              onClick={handleAddToCartClick}
+              className="h-10 px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg flex items-center gap-2 font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+            >
+              <ShoppingCart size={16} />
+              <span className="hidden sm:inline">Add to Cart</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ==========================================
+// HOME COMPONENT - ALL HOOKS AT TOP
+// ==========================================
 export default function Home() {
-  // --- STATE MANAGEMENT ---
-  // 1. searchInput: Jo user abhi type kar raha hai (Visual only)
+  // ==========================================
+  // ALL HOOKS - MUST BE AT THE VERY TOP
+  // CALLED IN THE SAME ORDER EVERY RENDER
+  // ==========================================
+  
+  // 1. Context hook - CALLED ONLY ONCE
+  const { addToCart } = useCart();
+
+  // 2. All state hooks - ALL CALLED UNCONDITIONALLY
   const [searchInput, setSearchInput] = useState("");
-
-  // 2. query: Jo actually server ke paas jayega (Enter dabane par)
   const [query, setQuery] = useState("");
-
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  // Data States
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Pagination States
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // Performance: Debounce search input
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  // --- DEBOUNCE SEARCH INPUT (Performance optimization) ---
+  // 3. Callback hooks
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+
+    const categoryForAPI = activeCategory ? activeCategory.toLowerCase() : "";
+    
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: "12",
+      q: debouncedQuery || "",
+      category: categoryForAPI,
+    });
+    
+    const url = `/api/products/all?${params.toString()}`;
+
+    try {
+      const cacheBuster = `_t=${Date.now()}`;
+      const finalUrl = url.includes('?') ? `${url}&${cacheBuster}` : `${url}?${cacheBuster}`;
+      
+      const response = await fetch(finalUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      let productsArray: Product[] = [];
+      
+      if (data && Array.isArray(data.data)) {
+        productsArray = data.data;
+      } else if (data && Array.isArray(data.products)) {
+        productsArray = data.products;
+      } else if (Array.isArray(data)) {
+        productsArray = data;
+      }
+      
+      setProducts(productsArray);
+      setTotalPages(data.pagination?.totalPages ?? 1);
+    } catch (err) {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedQuery, activeCategory]);
+
+  const handleAddToCartClick = useCallback((product: Product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      shopId: product.shopId,
+    });
+    toast.success(`${product.name} added to cart!`);
+  }, [addToCart]);
+
+  // 4. All effect hooks - ALL CALLED UNCONDITIONALLY
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
-      setPage(1); // Reset to page 1 on search
+      setPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
-  // --- DATA FETCHING ---
   useEffect(() => {
-    setLoading(true);
+    fetch('/api/offers')
+      .then(res => res.json())
+      .then(data => setOffers(data))
+      .catch(err => console.error("Error fetching offers:", err));
+  }, []);
 
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: "9",
-      q: debouncedQuery, // Use debounced query
-      category: activeCategory || "",
-    });
+  useEffect(() => {
+    try {
+      fetch('/api/metrics/visit', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
+  }, []);
 
-    fetch(`/api/shops?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) {
-          setShops(data.data);
-          setTotalPages(data.pagination?.totalPages ?? 1);
-        } else {
-          setShops([]);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching shops:", err);
-        setLoading(false);
-        setShops([]);
-      });
-  }, [page, debouncedQuery, activeCategory]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
-  // --- LOGIC: Reset Page on Filter Change ---
   useEffect(() => {
     setPage(1);
   }, [query, activeCategory]);
 
-  // --- ✅ UX POLISH: Scroll to Top on Page Change ---
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
-  // --- SEARCH HANDLER ---
+  // ==========================================
+  // ALL HOOKS END HERE - NO MORE HOOKS BELOW
+  // ==========================================
+
+  // Event handlers (NOT hooks)
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault(); // Page reload roko
-    setQuery(searchInput); // Ab API call trigger hogi
+    e.preventDefault();
+    setQuery(searchInput);
   };
 
-  // --- CLEAR FILTERS ---
   const clearFilters = () => {
     setSearchInput("");
     setQuery("");
     setActiveCategory(null);
   };
 
+  // Render - ProductCard is called with stable props
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      {/* --- NEWS TICKER / OFFERS SECTION --- */}
+      {offers.length > 0 && (
+        <div className="bg-[#FFD700] border-b border-yellow-500 overflow-hidden relative group">
+          <div className="max-w-6xl mx-auto flex items-center h-10 md:h-12 px-6">
+            <div className="flex-shrink-0 flex items-center gap-2 bg-black text-[#FFD700] px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mr-4 animate-pulse">
+              <Star size={12} fill="currentColor" />
+              Offers & News
+            </div>
+            <div className="flex-1 overflow-hidden relative h-full flex items-center">
+              <div className="flex animate-marquee whitespace-nowrap gap-12 group-hover:[animation-play-state:paused]">
+                {offers.map((offer, i) => (
+                  <span key={`${offer.id}-${i}`} className="text-slate-900 font-bold text-sm md:text-base">
+                    {offer.content}
+                  </span>
+                ))}
+                {/* Duplicate for seamless scrolling */}
+                {offers.map((offer, i) => (
+                  <span key={`${offer.id}-dup-${i}`} className="text-slate-900 font-bold text-sm md:text-base">
+                    {offer.content}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes marquee {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .animate-marquee {
+              display: inline-flex;
+              animation: marquee 60s linear infinite;
+            }
+            .group:hover .animate-marquee {
+              animation-play-state: paused;
+            }
+          `}} />
+        </div>
+      )}
+
       {/* --- HERO SECTION --- */}
       <section className="bg-white border-b border-slate-100 relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 py-16 md:py-24 relative z-10 text-center md:text-left">
@@ -132,7 +314,6 @@ export default function Home() {
               className="mt-10 flex flex-col md:flex-row gap-3 group max-w-2xl mx-auto md:mx-0"
             >
               <div className="relative flex-1">
-                {/* Search Icon Button */}
                 <button
                   type="submit"
                   className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-slate-400 hover:text-orange-500 transition-colors z-10"
@@ -148,7 +329,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Mobile Search Button */}
               <button
                 type="submit"
                 className="md:hidden bg-orange-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform"
@@ -168,11 +348,10 @@ export default function Home() {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() =>
-                  setActiveCategory(
-                    activeCategory === cat.name ? null : cat.name,
-                  )
-                }
+                onClick={() => {
+                  const newCategory = activeCategory === cat.name ? null : cat.name;
+                  setActiveCategory(newCategory);
+                }}
                 className={`group flex flex-col items-center p-3 rounded-xl transition-all duration-300 border ${
                   activeCategory === cat.name
                     ? "bg-orange-50 border-orange-200 shadow-inner scale-95"
@@ -208,13 +387,12 @@ export default function Home() {
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-3xl font-black text-slate-900">
             {activeCategory
-              ? `${activeCategory} Shops`
+              ? `${activeCategory} Products`
               : query
                 ? `Results for "${query}"`
-                : "Explore All"}
+                : "All Products"}
           </h2>
 
-          {/* Clear Filters Button */}
           {(query || activeCategory) && (
             <button
               onClick={clearFilters}
@@ -235,21 +413,15 @@ export default function Home() {
               ></div>
             ))}
           </div>
-        ) : shops.length === 0 ? (
-          /* --- EMPTY STATE --- */
-          <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
-            <Search size={40} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-slate-400 font-bold text-lg">Dukan nahi mili.</p>
-            <p className="text-slate-400 text-sm mt-2">
-              Apni dukan register karne ke liye ShahdolBazaar join karein.
-            </p>
-          </div>
-        ) : (
-          /* --- SHOP GRID --- */
+        ) : products && products.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
-              {shops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={handleAddToCartClick}
+                />
               ))}
             </div>
 
@@ -276,69 +448,23 @@ export default function Home() {
               </button>
             </div>
           </>
+        ) : (
+          <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 mb-6">
+              <Search size={40} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-700 mb-2">No Products Found</h3>
+            <p className="text-slate-500 text-sm max-w-md mx-auto">
+              We couldn't find any products matching your search. Try adjusting your filters or browse all products.
+            </p>
+            {activeCategory && (
+              <p className="text-xs text-slate-400 mt-2">
+                Filter: {activeCategory}
+              </p>
+            )}
+          </div>
         )}
       </section>
     </div>
-  );
-}
-
-// --- SHOP CARD COMPONENT ---
-function ShopCard({
-  shop,
-  isCompact = false,
-}: {
-  shop: Shop;
-  isCompact?: boolean;
-}) {
-  const isTopRated =
-    shop.isFeatured || (shop.avgRating >= 4.5 && (shop.reviewCount || 0) >= 5);
-  return (
-    <Link href={`/shop/${shop.id}`}>
-      <div
-        className={`${isCompact ? "min-w-[300px] snap-center" : "w-full"} group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-500 cursor-pointer relative`}
-      >
-        {isTopRated && (
-          <div className="absolute top-5 left-5 z-10 bg-white/90 backdrop-blur-md text-slate-900 text-[10px] font-black px-4 py-2 rounded-full shadow-xl flex items-center gap-2 border border-white">
-            <Star size={12} className="text-orange-500" fill="currentColor" />{" "}
-            {shop.isFeatured ? "FEATURED" : "TOP RATED"}
-          </div>
-        )}
-        <div className="h-52 overflow-hidden relative">
-          <img
-            src={
-              shop.image ||
-              "https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=400"
-            }
-            loading="lazy"
-            alt={shop.name}
-            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-1000"
-          />
-        </div>
-        <div className="p-8">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-2xl font-bold text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-1">
-              {shop.name}
-            </h3>
-            {shop.avgRating > 0 && (
-              <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1 rounded-xl text-xs font-black">
-                {shop.avgRating} <Star size={12} fill="currentColor" />
-              </div>
-            )}
-          </div>
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-            {shop.category}
-          </p>
-          <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-            <div className="flex items-center text-slate-400 text-xs font-bold gap-2">
-              <MapPin size={14} className="text-orange-400" />{" "}
-              {shop.address?.split(",")[0] || "Shahdol"}
-            </div>
-            <div className="h-10 w-10 bg-slate-900 rounded-full flex items-center justify-center text-white group-hover:bg-orange-500 transition-colors shadow-lg">
-              <ArrowRight size={18} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
   );
 }

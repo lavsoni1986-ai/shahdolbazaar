@@ -1,14 +1,19 @@
 import { Link, useLocation } from "wouter";
-import { Menu, X, MessageCircle, Bus } from "lucide-react";
+import { Menu, X, MessageCircle, Bus, Store, ShoppingCart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { Cart } from "@/components/Cart";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [location] = useLocation();
+  const { getTotalItems } = useCart();
 
   const myWhatsAppNumber = "919753239303";
   const myEmail = "support@shahdolbazaar.com";
+  const cartItemCount = getTotalItems();
 
   // Route change hote hi menu band karne ke liye
   useEffect(() => {
@@ -66,23 +71,52 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
 
-            <Link href="/auth">
-              <Button
-                size="sm"
-                className="bg-orange-500 text-white rounded-xl shadow-md hover:bg-orange-600"
+            <Link href="/partner">
+              <span
+                className={`flex items-center gap-1 cursor-pointer transition-colors ${
+                  location === "/partner" || location.startsWith("/partner/")
+                    ? "text-orange-500"
+                    : "text-slate-500 hover:text-orange-500"
+                }`}
               >
-                List Your Shop
-              </Button>
+                <Store size={16} /> Sell on Shahdol Bazaar
+              </span>
             </Link>
+
+            {/* Cart Icon */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 text-slate-500 hover:text-orange-500 transition-colors"
+            >
+              <ShoppingCart size={20} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount > 9 ? "9+" : cartItemCount}
+                </span>
+              )}
+            </button>
           </nav>
 
-          {/* Mobile Toggle */}
-          <button
-            className="md:hidden p-2 text-slate-600"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Mobile: Cart and Menu */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 text-slate-600"
+            >
+              <ShoppingCart size={24} />
+              {cartItemCount > 0 && (
+                <span className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount > 9 ? "9+" : cartItemCount}
+                </span>
+              )}
+            </button>
+            <button
+              className="p-2 text-slate-600"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Nav Menu */}
@@ -119,10 +153,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </span>
               </Link>
 
-              <Link href="/auth">
-                <Button className="w-full bg-orange-500 text-white font-bold rounded-xl">
-                  List Your Shop
-                </Button>
+              <Link href="/partner">
+                <span
+                  className={`text-sm font-bold flex items-center gap-2 cursor-pointer ${
+                    location === "/partner" || location.startsWith("/partner/")
+                      ? "text-orange-500"
+                      : "text-slate-600"
+                  }`}
+                >
+                  <Store size={18} /> Sell on Shahdol Bazaar
+                </span>
               </Link>
             </nav>
           </div>
@@ -131,6 +171,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* --- PAGE CONTENT --- */}
       <main className="flex-1">{children}</main>
+
+      {/* Cart Sidebar */}
+      <Cart open={isCartOpen} onOpenChange={setIsCartOpen} />
 
       {/* --- FOOTER SECTION --- */}
       <footer className="border-t py-16 bg-[#0B1221] text-slate-300 text-center md:text-left">

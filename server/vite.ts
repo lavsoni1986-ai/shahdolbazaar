@@ -18,10 +18,27 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  app.use(vite.middlewares);
+  // CRITICAL: Skip Vite middleware for API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/")) {
+      console.log("⏭️ [VITE] Skipping Vite middleware for API route:", req.path);
+      return next(); // Skip Vite, go to next middleware (API routes)
+    }
+    // For non-API routes, use Vite middleware
+    vite.middlewares(req, res, next);
+  });
 
+  // IMPORTANT: Only serve HTML for non-API routes
+  // API routes should be handled by routes.ts BEFORE this middleware
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    
+    // Skip API routes - they should be handled by routes.ts
+    if (url.startsWith("/api/")) {
+      console.log("⚠️ [VITE] API route intercepted by Vite middleware:", url);
+      return next(); // Let it fall through to API routes
+    }
+    
     try {
       // Ab ye line bina error ke chalegi
       const clientTemplate = path.resolve(
