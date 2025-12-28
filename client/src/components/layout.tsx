@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { Cart } from "@/components/Cart";
+import { toast } from "sonner";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,8 +22,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
     setIsMenuOpen(false);
   }, [location]);
 
+  const handleComingSoon = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast.info("Bus Timetable: Work in progress! 🚧", {
+      description: "Hum jald hi sateek timings update karenge.",
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes blink {
+          0% { opacity: 1; }
+          50% { opacity: 0.3; }
+          100% { opacity: 1; }
+        }
+        .animate-blink {
+          animation: blink 1.5s ease-in-out infinite;
+        }
+      `}} />
       {/* --- HEADER SECTION --- */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur shadow-sm">
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
@@ -36,17 +54,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
-            <Link href="/bus">
-              <span
-                className={`flex items-center gap-1 cursor-pointer transition-colors ${
-                  location === "/bus"
-                    ? "text-orange-500"
-                    : "text-slate-500 hover:text-orange-500"
-                }`}
-              >
-                <Bus size={16} /> Bus Timetable
+            <button
+              onClick={handleComingSoon}
+              className={`flex items-center gap-1 cursor-pointer transition-colors bg-transparent p-0 border-none font-bold ${
+                location === "/bus"
+                  ? "text-orange-500"
+                  : "text-slate-500 hover:text-orange-500"
+              }`}
+            >
+              <Bus size={16} /> Bus Timetable 
+              <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded text-[10px] font-black uppercase animate-blink border border-amber-200">
+                Coming Soon
               </span>
-            </Link>
+            </button>
 
             <Link href="/about">
               <span
@@ -136,15 +156,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {isMenuOpen && (
           <div className="md:hidden border-t p-4 space-y-4 bg-white animate-in slide-in-from-top duration-200">
             <nav className="flex flex-col gap-4">
-              <Link href="/bus">
-                <span
-                  className={`text-sm font-bold flex items-center gap-2 cursor-pointer ${
-                    location === "/bus" ? "text-orange-500" : "text-slate-600"
-                  }`}
-                >
-                  <Bus size={18} /> Bus Timetable
+              <button
+                onClick={handleComingSoon}
+                className={`text-sm font-bold flex items-center gap-2 cursor-pointer bg-transparent p-0 border-none text-left ${
+                  location === "/bus" ? "text-orange-500" : "text-slate-600"
+                }`}
+              >
+                <Bus size={18} /> Bus Timetable
+                <span className="ml-auto px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded text-[10px] font-black uppercase animate-blink border border-amber-200">
+                  Coming Soon
                 </span>
-              </Link>
+              </button>
 
               <Link href="/about">
                 <span
@@ -220,11 +242,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </span>
             <ul className="space-y-4 text-sm font-medium">
               <li>
-                <Link href="/bus">
-                  <span className="hover:text-orange-500 cursor-pointer">
-                    Bus Timetable
+                <button
+                  onClick={handleComingSoon}
+                  className="hover:text-orange-500 cursor-pointer flex items-center gap-2 bg-transparent p-0 border-none font-medium text-slate-300 mx-auto md:mx-0"
+                >
+                  Bus Timetable
+                  <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-500 rounded text-[10px] font-black uppercase animate-blink border border-amber-500/30">
+                    Soon
                   </span>
-                </Link>
+                </button>
               </li>
               <li>
                 <Link href="/about">
@@ -279,3 +305,4 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
