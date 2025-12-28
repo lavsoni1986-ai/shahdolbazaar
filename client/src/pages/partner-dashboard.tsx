@@ -423,77 +423,77 @@ export default function PartnerDashboard() {
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 font-medium">
-                    Total Products
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">
-                    {totalProducts}
-                  </p>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600 font-medium">
+                        Total Products
+                      </p>
+                      <p className="text-3xl font-bold text-slate-900 mt-2">
+                        {totalProducts}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-orange-100 rounded-lg">
+                      <Package className="text-orange-600" size={24} />
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <Package className="text-orange-600" size={24} />
+
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600 font-medium">
+                        Shop Status
+                      </p>
+                      <p className="text-lg font-bold text-green-600 mt-2 flex items-center gap-2">
+                        {shop ? (
+                          <>
+                            <CheckCircle2 size={20} /> Live
+                          </>
+                        ) : (
+                          "Not Setup"
+                        )}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded-lg">
+                      <Store className="text-green-600" size={24} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600 font-medium">
+                        Total Value
+                      </p>
+                      <p className="text-3xl font-bold text-slate-900 mt-2">
+                        ₹{totalValue.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <TrendingUp className="text-blue-600" size={24} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 font-medium">
-                    Shop Status
-                  </p>
-                  <p className="text-lg font-bold text-green-600 mt-2 flex items-center gap-2">
-                    {shop ? (
-                      <>
-                        <CheckCircle2 size={20} /> Live
-                      </>
-                    ) : (
-                      "Not Setup"
-                    )}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Store className="text-green-600" size={24} />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 font-medium">
-                    Total Value
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">
-                    ₹{totalValue.toFixed(2)}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <TrendingUp className="text-blue-600" size={24} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Shop Info Section */}
-          {!shop || showEditForm ? (
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
-              {shop && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-4"
-                  onClick={() => setShowEditForm(false)}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              )}
-              <h2 className="text-xl font-bold text-slate-800 mb-4">
-                {shop ? "Edit Shop Details" : "Setup Your Shop"}
-              </h2>
+              {/* Shop Info Section */}
+              {!shop || showEditForm ? (
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
+                  {shop && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-4 top-4"
+                      onClick={() => setShowEditForm(false)}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  )}
+                  <h2 className="text-xl font-bold text-slate-800 mb-4">
+                    {shop ? "Edit Shop Details" : "Setup Your Shop"}
+                  </h2>
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit((d) => shopMutation.mutate(d))}
