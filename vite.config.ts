@@ -6,10 +6,8 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 
 export default defineConfig({
-  // GitHub Pages ke liye repo base path
-  // URL: https://lavsoni1986-ai.github.io/shahdol-bazaar/
-  // => base: "/shahdol-bazaar/"
-  base: "/shahdol-bazaar/",
+  // Netlify explicitly needs base: '/' for correct path resolution
+  base: "/",
 
   plugins: [
     react(),
