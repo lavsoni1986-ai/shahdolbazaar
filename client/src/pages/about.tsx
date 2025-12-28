@@ -45,8 +45,10 @@ export default function About() {
           <div className="relative">
             <div className="bg-slate-100 rounded-[3rem] overflow-hidden aspect-square flex items-center justify-center p-12">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="ShahdolBazaar"
+                width="400"
+                height="130"
                 className="w-full h-auto object-contain opacity-90"
               />
             </div>

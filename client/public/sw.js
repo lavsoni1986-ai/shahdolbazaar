@@ -5,7 +5,7 @@ const ASSETS_TO_CACHE = [
   '/index.html',
   '/maskable_icon_x192.png',
   '/maskable_icon_x512.png',
-  '/logo.png'
+  '/logo.webp'
 ];
 
 self.addEventListener('install', (event) => {

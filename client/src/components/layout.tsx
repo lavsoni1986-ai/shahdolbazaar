@@ -46,8 +46,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-4">
           <Link href="/">
             <img
-              src="/logo.png"
+              src="/logo.webp"
               alt="ShahdolBazaar"
+              width="180"
+              height="60"
               className="h-10 md:h-14 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
             />
           </Link>
@@ -119,6 +121,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Cart Icon */}
             <button
               onClick={() => setIsCartOpen(true)}
+              aria-label="Open Cart"
               className="relative p-2 text-slate-500 hover:text-orange-500 transition-colors"
             >
               <ShoppingCart size={20} />
@@ -134,6 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setIsCartOpen(true)}
+              aria-label="Open Shopping Cart"
               className="relative p-2 text-slate-600"
             >
               <ShoppingCart size={24} />
@@ -145,6 +149,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
             <button
               className="p-2 text-slate-600"
+              aria-label="Toggle Navigation Menu"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -226,8 +231,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div>
             <div className="mb-6">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="Logo"
+                width="180"
+                height="60"
                 className="h-12 w-auto mx-auto md:mx-0"
               />
             </div>
