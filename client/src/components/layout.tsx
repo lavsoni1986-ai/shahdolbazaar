@@ -12,7 +12,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { getTotalItems } = useCart();
 
   const myWhatsAppNumber = "919753239303";
-  const myEmail = "support@shahdolbazaar.com";
+  const myEmail = "shaholbazaar2.0@gmail.com";
+  const myName = "Lav Kumar Soni";
   const cartItemCount = getTotalItems();
 
   // Route change hote hi menu band karne ke liye
@@ -56,6 +57,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 About Us
+              </span>
+            </Link>
+
+            <Link href="/contact">
+              <span
+                className={`cursor-pointer transition-colors ${
+                  location === "/contact"
+                    ? "text-orange-500"
+                    : "text-slate-500 hover:text-orange-500"
+                }`}
+              >
+                Contact Us
               </span>
             </Link>
 
@@ -143,6 +156,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </span>
               </Link>
 
+              <Link href="/contact">
+                <span
+                  className={`text-sm font-bold cursor-pointer ${
+                    location === "/contact" ? "text-orange-500" : "text-slate-600"
+                  }`}
+                >
+                  Contact Us
+                </span>
+              </Link>
+
               <Link href="/auth">
                 <span
                   className={`text-sm font-bold cursor-pointer ${
@@ -210,13 +233,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </span>
                 </Link>
               </li>
+              <li>
+                <Link href="/contact">
+                  <span className="hover:text-orange-500 cursor-pointer">
+                    Contact Us
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-bold text-white mb-6 uppercase text-xs tracking-widest">
-              Connect
+              Support & Contact
             </h3>
+            <div className="space-y-4 text-sm font-medium mb-6">
+              <p className="flex items-center gap-2 justify-center md:justify-start">
+                <span className="text-orange-500">Owner:</span> {myName}
+              </p>
+              <p className="flex items-center gap-2 justify-center md:justify-start">
+                <span className="text-orange-500">Email:</span> {myEmail}
+              </p>
+            </div>
             <a
               href={`https://wa.me/${myWhatsAppNumber}`}
               target="_blank"

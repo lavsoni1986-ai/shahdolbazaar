@@ -165,6 +165,12 @@ export default function About() {
               Kya aap Shahdol mein vyapar karte hain? Aaj hi ShahdolBazaar se
               judiye aur apne dukan ko online le jaiye.
             </p>
+            <div className="bg-slate-800/50 p-8 rounded-3xl mb-12 border border-slate-700 max-w-xl mx-auto">
+              <h3 className="text-xl font-bold mb-4">Direct Contact</h3>
+              <p className="text-orange-500 font-black text-2xl mb-2">Lav Kumar Soni</p>
+              <p className="text-slate-300">Mobile: 9753239303</p>
+              <p className="text-slate-300">Email: shaholbazaar2.0@gmail.com</p>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth">
                 <Button
@@ -175,13 +181,13 @@ export default function About() {
                 </Button>
               </Link>
 
-              <Link href="/">
+              <Link href="/contact">
                 <Button
                   size="lg"
                   variant="outline"
                   className="border-slate-700 text-white hover:bg-slate-800 font-bold px-12 h-16 rounded-2xl transition-all"
                 >
-                  Explore Shops
+                  Contact Us
                 </Button>
               </Link>
             </div>

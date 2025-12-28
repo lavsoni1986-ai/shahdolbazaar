@@ -10,6 +10,7 @@ import { CartProvider } from "@/contexts/CartContext";
 // Pages
 import Home from "@/pages/home";
 import About from "@/pages/about";
+import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import CategoryListing from "@/pages/category-listing";
 import ShopDetail from "@/pages/shop-detail";
@@ -166,6 +167,7 @@ function Router() {
         {/* Public Pages */}
         <Route path="/" component={Home} />
         <Route path="/about" component={About} />
+        <Route path="/contact" component={Contact} />
         <Route path="/terms" component={Terms} />
         <Route path="/bus" component={Bus} />
         <Route path="/category/:slug" component={CategoryListing} />
