@@ -263,6 +263,7 @@ export class MemStorage implements IStorage {
       imageUrl: "https://images.unsplash.com/photo-1603398938378-e54eab446ddd?auto=format&fit=crop&q=80&w=800",
       category: "Medical",
       description: "Complete first aid kit for emergencies",
+      status: "approved",
       createdAt: new Date(),
     });
 
@@ -274,6 +275,7 @@ export class MemStorage implements IStorage {
       imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800",
       category: "Grocery",
       description: "Premium quality wheat flour",
+      status: "approved",
       createdAt: new Date(),
     });
 
@@ -285,6 +287,7 @@ export class MemStorage implements IStorage {
       imageUrl: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&q=80&w=800",
       category: "Restaurants",
       description: "Grilled cottage cheese with spices",
+      status: "approved",
       createdAt: new Date(),
     });
 
@@ -296,6 +299,7 @@ export class MemStorage implements IStorage {
       imageUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&q=80&w=800",
       category: "Beauty & Personal Care",
       description: "Brightening face pack with Vitamin C for glowing skin",
+      status: "approved",
       createdAt: new Date(),
     });
     this.currentIds.products = 5;
@@ -428,6 +432,7 @@ export class MemStorage implements IStorage {
       id,
       description: insertProduct.description || null,
       imageUrl: insertProduct.imageUrl || null,
+      status: insertProduct.status || "pending",
       createdAt: new Date(),
     };
     this.products.set(id, product);

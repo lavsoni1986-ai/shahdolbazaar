@@ -562,6 +562,9 @@ export async function registerRoutes(
       });
       
       const filtered = allProducts.filter((p) => {
+        // ONLY SHOW APPROVED PRODUCTS TO PUBLIC
+        if (p.status !== "approved") return false;
+
         const matchesQ =
           !q ||
           p.name.toLowerCase().includes(q) ||
@@ -851,6 +854,42 @@ export async function registerRoutes(
         return res.status(400).json({ message: e.message || "Verification failed" });
       }
     },
+  );
+
+  // Admin: Get all pending products
+  app.get(
+    "/api/admin/products/pending",
+    requireAuth,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const allProducts = await storage.getAllProducts();
+        const pending = allProducts.filter((p) => p.status === "pending");
+        return res.json(pending);
+      } catch (e) {
+        return res.status(500).json({ message: "Failed to fetch pending products" });
+      }
+    }
+  );
+
+  // Admin: Approve/Reject product
+  app.patch(
+    "/api/admin/products/:id/status",
+    requireAuth,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const { status } = req.body;
+        if (!["approved", "rejected", "pending"].includes(status)) {
+          return res.status(400).json({ message: "Invalid status" });
+        }
+        const updated = await storage.updateProduct(id, { status });
+        return res.json(updated);
+      } catch (e) {
+        return res.status(500).json({ message: "Failed to update product status" });
+      }
+    }
   );
 
   // ==========================================

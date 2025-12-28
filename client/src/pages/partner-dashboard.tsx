@@ -260,7 +260,10 @@ export default function PartnerDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/products", shop?.id] });
       setShowProductDialog(false);
       productForm.reset();
-      toast({ title: "Product added! 🛍️" });
+      toast({ 
+        title: "Product Submitted! 🛍️",
+        description: "Your product is under review and will be live once approved by admin."
+      });
     },
     onError: (error: any) => {
       toast({
@@ -829,6 +832,7 @@ export default function PartnerDashboard() {
                           Category
                         </TableHead>
                         <TableHead>Price</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="hidden md:table-cell">
                           Description
                         </TableHead>
@@ -857,6 +861,15 @@ export default function PartnerDashboard() {
                           </TableCell>
                           <TableCell className="font-bold text-green-700">
                             ₹{p.price}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              p.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              p.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              'bg-orange-100 text-orange-700'
+                            }`}>
+                              {p.status || 'pending'}
+                            </span>
                           </TableCell>
                           <TableCell className="hidden md:table-cell text-slate-600 max-w-xs truncate">
                             {p.description || "—"}

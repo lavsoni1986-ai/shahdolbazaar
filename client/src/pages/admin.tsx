@@ -10,6 +10,7 @@ export default function Admin() {
   const [visitors, setVisitors] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [pendingProducts, setPendingProducts] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | string | null>(null);
@@ -24,8 +25,41 @@ export default function Admin() {
       fetchStats();
       fetchProducts();
       fetchOffers();
+      fetchPendingProducts();
     }
   }, [loggedIn]);
+
+  async function fetchPendingProducts() {
+    try {
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/admin/products/pending", {
+        headers: { "x-user-id": "1" }
+      });
+      if (!res.ok) return setPendingProducts([]);
+      const d = await res.json();
+      setPendingProducts(d);
+    } catch (e) {
+      setPendingProducts([]);
+    }
+  }
+
+  async function handleUpdateProductStatus(id: number | string, status: string) {
+    try {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/admin/products/${id}/status`, {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-user-id": "1" 
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      toast.success(`Product ${status} successfully!`);
+      fetchPendingProducts();
+      fetchProducts(); // Refresh overall list
+    } catch (e) {
+      toast.error("Failed to update product status");
+    }
+  }
 
   async function fetchStats() {
     try {
@@ -346,6 +380,64 @@ export default function Admin() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Pending Product Approvals Section */}
+        <div className="bg-white p-4 rounded border mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold">Pending Product Approvals</h2>
+            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-black">
+              {pendingProducts.length} PENDING
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-sm text-slate-500">
+                  <th className="py-2">Product Name</th>
+                  <th className="py-2">Price</th>
+                  <th className="py-2">Category</th>
+                  <th className="py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingProducts.map((p) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="py-3">
+                      <div className="font-bold text-slate-900">{p.name}</div>
+                      <div className="text-[10px] text-slate-400 uppercase">Shop ID: #{p.shopId}</div>
+                    </td>
+                    <td className="py-3 text-orange-600 font-black">₹{p.price}</td>
+                    <td className="py-3 text-sm">{p.category}</td>
+                    <td className="py-3">
+                      <div className="flex gap-2 justify-end">
+                        <button 
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md"
+                          onClick={() => handleUpdateProductStatus(p.id, "approved")}
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md"
+                          onClick={() => handleUpdateProductStatus(p.id, "rejected")}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {pendingProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-12 text-center text-slate-400 italic">
+                      No products waiting for approval.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

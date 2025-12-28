@@ -53,6 +53,7 @@ export const products = pgTable("products", {
   imageUrl: text("image_url"), // Cloudinary/Image upload support ke liye
   category: text("category").notNull(), // Product category
   description: text("description"),
+  status: text("status").default("pending").notNull(), // pending | approved | rejected
   createdAt: timestamp("created_at").defaultNow(),
 });
 
