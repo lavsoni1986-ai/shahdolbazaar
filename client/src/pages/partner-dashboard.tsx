@@ -292,7 +292,7 @@ export default function PartnerDashboard() {
   if (shopLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-orange-500 h-8 w-8" />
+        <Loader2 className="animate-spin text-orange-600 h-8 w-8" />
       </div>
     );
   }
@@ -314,7 +314,7 @@ export default function PartnerDashboard() {
       >
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center gap-2 font-bold text-lg text-slate-800">
-            <Store className="text-orange-500" size={24} />
+            <Store className="text-orange-600" size={24} />
             <span className="hidden md:block">Partner Dashboard</span>
           </div>
         </div>

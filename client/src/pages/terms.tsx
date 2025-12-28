@@ -5,7 +5,7 @@ export default function Terms() {
     <div className="bg-slate-50 min-h-screen py-12 md:py-20">
       <div className="max-w-4xl mx-auto px-6 bg-white p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-sm border border-slate-100">
         {/* Header Section */}
-        <div className="flex items-center gap-3 text-orange-500 mb-8 border-b pb-6">
+        <div className="flex items-center gap-3 text-orange-600 mb-8 border-b pb-6">
           <Scale size={32} />
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
             Terms of Service

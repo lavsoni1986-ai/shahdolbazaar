@@ -21,14 +21,14 @@ export default function About() {
         </div>
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-500 px-4 py-2 rounded-full mb-8">
+          <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-600 px-4 py-2 rounded-full mb-8">
             <Heart size={16} fill="currentColor" />
             <span className="text-xs font-black uppercase tracking-widest">
               Proudly Local
             </span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">
-            Shahdol Ka <span className="text-orange-500">Apna</span> <br />
+            Shahdol Ka <span className="text-orange-600">Apna</span> <br />
             Digital Bazaar
           </h1>
           <p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
@@ -49,12 +49,13 @@ export default function About() {
                 alt="ShahdolBazaar"
                 width="400"
                 height="130"
+                style={{ aspectRatio: '400 / 130' }}
                 className="w-full h-auto object-contain opacity-90"
               />
             </div>
             {/* Floating badge */}
             <div className="absolute -bottom-6 -right-6 bg-white p-8 rounded-[2rem] shadow-xl border border-slate-50 hidden md:block">
-              <p className="text-4xl font-black text-orange-500">100%</p>
+              <p className="text-4xl font-black text-orange-600">100%</p>
               <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">
                 Local Trust
               </p>
@@ -62,7 +63,7 @@ export default function About() {
           </div>
 
           <div>
-            <div className="flex items-center gap-2 text-orange-500 mb-4">
+            <div className="flex items-center gap-2 text-orange-600 mb-4">
               <Target size={24} />
               <span className="font-black uppercase tracking-widest text-sm">
                 Hamara Maqsad
@@ -161,7 +162,7 @@ export default function About() {
           <div className="relative z-10">
             <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight">
               Aapka Business, <br />
-              <span className="text-orange-500">Hamari Digital Pehchan.</span>
+              <span className="text-orange-600">Hamari Digital Pehchan.</span>
             </h2>
             <p className="text-slate-400 text-lg md:text-xl mb-12 max-w-2xl mx-auto">
               Kya aap Shahdol mein vyapar karte hain? Aaj hi ShahdolBazaar se
@@ -169,7 +170,7 @@ export default function About() {
             </p>
             <div className="bg-slate-800/50 p-8 rounded-3xl mb-12 border border-slate-700 max-w-xl mx-auto">
               <h3 className="text-xl font-bold mb-4">Direct Contact</h3>
-              <p className="text-orange-500 font-black text-2xl mb-2">Lav Kumar Soni</p>
+              <p className="text-orange-600 font-black text-2xl mb-2">Lav Kumar Soni</p>
               <p className="text-slate-300">Mobile: 9753239303</p>
               <p className="text-slate-300">Email: shaholbazaar2.0@gmail.com</p>
             </div>

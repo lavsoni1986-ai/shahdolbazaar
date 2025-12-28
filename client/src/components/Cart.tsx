@@ -146,7 +146,7 @@ Please confirm this order. Thank you!`;
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <ShoppingBag size={24} className="text-orange-500" />
+            <ShoppingBag size={24} className="text-orange-600" />
             Shopping Cart
           </SheetTitle>
           <SheetDescription>
@@ -198,7 +198,7 @@ Please confirm this order. Thank you!`;
                           <h3 className="font-bold text-slate-900 mb-1 line-clamp-2">
                             {item.name}
                           </h3>
-                          <p className="text-lg font-black text-orange-500 mb-3">
+                          <p className="text-lg font-black text-orange-600 mb-3">
                             ₹{parseFloat(item.price).toLocaleString()}
                           </p>
                           <div className="flex items-center gap-3">
@@ -296,7 +296,7 @@ Please confirm this order. Thank you!`;
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                     <span className="text-lg font-bold text-slate-700">Total:</span>
-                    <span className="text-2xl font-black text-orange-500">
+                    <span className="text-2xl font-black text-orange-600">
                       ₹{totalPrice.toLocaleString()}
                     </span>
                   </div>
@@ -323,7 +323,7 @@ Please confirm this order. Thank you!`;
                 <div className="sticky bottom-0 bg-white border-t border-slate-200 pt-4 mt-6">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-bold text-slate-700">Total:</span>
-                    <span className="text-2xl font-black text-orange-500">
+                    <span className="text-2xl font-black text-orange-600">
                       ₹{totalPrice.toLocaleString()}
                     </span>
                   </div>

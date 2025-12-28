@@ -18,7 +18,7 @@ export default function Bus() {
         <div className="space-y-4">
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
             Bus Timetable <br />
-            <span className="text-orange-500 italic">Coming Soon!</span>
+            <span className="text-orange-600 italic">Coming Soon!</span>
           </h1>
           <p className="text-slate-500 font-medium leading-relaxed">
             Hum Shahdol ke sabhi bus routes aur timings ko verify kar rahe hain. 
@@ -28,7 +28,7 @@ export default function Bus() {
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 text-left group hover:border-orange-200 transition-colors">
           <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-orange-50 transition-colors">
-            <Clock className="text-slate-400 group-hover:text-orange-500" size={24} />
+            <Clock className="text-slate-400 group-hover:text-orange-600" size={24} />
           </div>
           <div>
             <h3 className="font-bold text-slate-800">Verifying Schedules</h3>
@@ -37,7 +37,7 @@ export default function Bus() {
         </div>
 
         <Link href="/">
-          <Button variant="ghost" className="text-slate-600 hover:text-orange-500 font-bold">
+          <Button variant="ghost" className="text-slate-600 hover:text-orange-600 font-bold">
             <ArrowLeft size={18} className="mr-2" /> Back to Home
           </Button>
         </Link>

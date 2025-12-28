@@ -20,7 +20,7 @@ export default function Contact() {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10">
           <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
-            Contact <span className="text-orange-500">Us</span>
+            Contact <span className="text-orange-600">Us</span>
           </h1>
           <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-2xl mx-auto">
             Hamein aapki sahayata karne mein khushi hogi. Kisi bhi sawal, sahayata ya partnership ke liye sampark karein.
@@ -57,7 +57,7 @@ export default function Contact() {
                 href={`https://wa.me/${myWhatsAppNumber}`} 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white text-orange-500 font-black px-8 py-3 rounded-xl shadow-lg hover:bg-orange-50 transition-colors"
+                className="bg-white text-orange-600 font-black px-8 py-3 rounded-xl shadow-lg hover:bg-orange-50 transition-colors"
               >
                 Chat Now
               </a>
@@ -87,10 +87,10 @@ export default function Contact() {
             <User size={48} />
           </div>
           <h2 className="text-3xl font-black text-slate-900 mb-4">Founder & Owner</h2>
-          <p className="text-2xl font-bold text-orange-500 mb-8">{myName}</p>
+          <p className="text-2xl font-bold text-orange-600 mb-8">{myName}</p>
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 text-slate-600">
             <div className="flex items-center gap-2">
-              <MapPin className="text-orange-500" size={20} />
+              <MapPin className="text-orange-600" size={20} />
               <span>Shahdol, Madhya Pradesh</span>
             </div>
             <div className="hidden md:block w-1.5 h-1.5 bg-slate-300 rounded-full"></div>
@@ -108,7 +108,7 @@ export default function Contact() {
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-black mb-6">
               Shahdol Bazaar se <br />
-              <span className="text-orange-500">Judiye Aaj Hi!</span>
+              <span className="text-orange-600">Judiye Aaj Hi!</span>
             </h2>
             <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">
               Kya aap ek vyapari hain aur online aana chahte hain? Hamein sampark karein aur hum aapki dukan ko digital banayenge.

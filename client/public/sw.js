@@ -1,5 +1,5 @@
 // Basic Service Worker for ShahdolBazaar PWA
-const CACHE_NAME = 'shahdolbazaar-v1';
+const CACHE_NAME = 'shahdolbazaar-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

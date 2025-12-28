@@ -80,7 +80,7 @@ function ProductCard({
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               {product.category}
             </p>
-            <h3 className="text-lg font-bold text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-2 mb-2 min-h-[3.5rem]">
+            <h3 className="text-lg font-bold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-2 mb-2 min-h-[3.5rem]">
               {product.name}
             </h3>
             {product.description && (
@@ -91,7 +91,7 @@ function ProductCard({
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-orange-500">
+              <span className="text-2xl font-black text-orange-600">
                 ₹{parseFloat(product.price).toLocaleString()}
               </span>
             </div>
@@ -296,7 +296,7 @@ export default function Home() {
           <div className="max-w-3xl">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1]">
               Shahdol{" "}
-              <span className="text-orange-500 underline decoration-orange-200 decoration-8 underline-offset-8">
+              <span className="text-orange-600 underline decoration-orange-200 decoration-8 underline-offset-8">
                 Bazaar
               </span>
             </h1>
@@ -316,13 +316,14 @@ export default function Home() {
               <div className="relative flex-1">
                 <button
                   type="submit"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-slate-400 hover:text-orange-500 transition-colors z-10"
+                  aria-label="Search items"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-slate-400 hover:text-orange-600 transition-colors z-10"
                 >
                   <Search size={22} />
                 </button>
 
                 <input
-                  className="w-full pl-16 pr-6 py-5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:ring-8 focus:ring-orange-500/5 focus:border-orange-500 outline-none transition-all text-lg shadow-sm"
+                  className="w-full pl-16 pr-6 py-5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:ring-8 focus:ring-orange-600/5 focus:border-orange-600 outline-none transition-all text-lg shadow-sm"
                   placeholder="Dukan ya saman ka naam..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -331,7 +332,7 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="md:hidden bg-orange-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform"
+                className="md:hidden bg-orange-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform"
               >
                 Search Karein
               </button>
@@ -396,7 +397,7 @@ export default function Home() {
           {(query || activeCategory) && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-2 text-sm font-bold text-orange-500 hover:bg-orange-50 px-4 py-2 rounded-xl transition-all"
+              className="flex items-center gap-2 text-sm font-bold text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-xl transition-all"
             >
               Clear Filters <X size={16} />
             </button>
@@ -430,7 +431,7 @@ export default function Home() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-700 border border-slate-200 hover:border-orange-500 hover:text-orange-500"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white text-slate-700 border border-slate-200 hover:border-orange-500 hover:text-orange-600"
               >
                 <ChevronLeft size={18} /> Prev
               </button>

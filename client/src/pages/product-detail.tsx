@@ -97,7 +97,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="animate-spin text-orange-500 h-12 w-12 mx-auto mb-4" />
+          <Loader2 className="animate-spin text-orange-600 h-12 w-12 mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Loading product...</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ export default function ProductDetail() {
           <Link href="/">
             <Button
               variant="ghost"
-              className="text-slate-600 hover:text-orange-500"
+              className="text-slate-600 hover:text-orange-600"
             >
               <ArrowLeft size={18} className="mr-2" />
               Back to Home
@@ -183,7 +183,7 @@ export default function ProductDetail() {
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
-              <span className="text-5xl font-black text-orange-500">
+              <span className="text-5xl font-black text-orange-600">
                 ₹{parseFloat(product.price).toLocaleString()}
               </span>
             </div>

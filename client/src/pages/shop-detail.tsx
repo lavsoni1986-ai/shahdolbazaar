@@ -131,7 +131,7 @@ export default function ShopDetail() {
             </div>
 
             <div className="flex items-center gap-2 text-slate-500 mb-6">
-              <MapPin size={18} className="text-orange-500" />
+              <MapPin size={18} className="text-orange-600" />
               <p>{shop.address || "Address not provided"}</p>
             </div>
 

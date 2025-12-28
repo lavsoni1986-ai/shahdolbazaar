@@ -50,6 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               alt="ShahdolBazaar"
               width="180"
               height="60"
+              style={{ aspectRatio: '180 / 60' }}
               className="h-10 md:h-14 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity"
             />
           </Link>
@@ -60,8 +61,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               onClick={handleComingSoon}
               className={`flex items-center gap-1 cursor-pointer transition-colors bg-transparent p-0 border-none font-bold ${
                 location === "/bus"
-                  ? "text-orange-500"
-                  : "text-slate-500 hover:text-orange-500"
+                  ? "text-orange-600"
+                  : "text-slate-500 hover:text-orange-600"
               }`}
             >
               <Bus size={16} /> Bus Timetable 
@@ -74,8 +75,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span
                 className={`cursor-pointer transition-colors ${
                   location === "/about"
-                    ? "text-orange-500"
-                    : "text-slate-500 hover:text-orange-500"
+                    ? "text-orange-600"
+                    : "text-slate-500 hover:text-orange-600"
                 }`}
               >
                 About Us
@@ -86,8 +87,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span
                 className={`cursor-pointer transition-colors ${
                   location === "/contact"
-                    ? "text-orange-500"
-                    : "text-slate-500 hover:text-orange-500"
+                    ? "text-orange-600"
+                    : "text-slate-500 hover:text-orange-600"
                 }`}
               >
                 Contact Us
@@ -98,8 +99,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span
                 className={`cursor-pointer transition-colors ${
                   location === "/auth"
-                    ? "text-orange-500"
-                    : "text-slate-500 hover:text-orange-500"
+                    ? "text-orange-600"
+                    : "text-slate-500 hover:text-orange-600"
                 }`}
               >
                 Partner Login
@@ -110,8 +111,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span
                 className={`flex items-center gap-1 cursor-pointer transition-colors ${
                   location === "/partner" || location.startsWith("/partner/")
-                    ? "text-orange-500"
-                    : "text-slate-500 hover:text-orange-500"
+                    ? "text-orange-600"
+                    : "text-slate-500 hover:text-orange-600"
                 }`}
               >
                 <Store size={16} /> Sell on Shahdol Bazaar
@@ -122,7 +123,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setIsCartOpen(true)}
               aria-label="Open Cart"
-              className="relative p-2 text-slate-500 hover:text-orange-500 transition-colors"
+              className="relative p-2 text-slate-500 hover:text-orange-600 transition-colors"
             >
               <ShoppingCart size={20} />
               {cartItemCount > 0 && (
@@ -164,7 +165,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <button
                 onClick={handleComingSoon}
                 className={`text-sm font-bold flex items-center gap-2 cursor-pointer bg-transparent p-0 border-none text-left ${
-                  location === "/bus" ? "text-orange-500" : "text-slate-600"
+                  location === "/bus" ? "text-orange-600" : "text-slate-600"
                 }`}
               >
                 <Bus size={18} /> Bus Timetable
@@ -176,7 +177,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/about">
                 <span
                   className={`text-sm font-bold cursor-pointer ${
-                    location === "/about" ? "text-orange-500" : "text-slate-600"
+                    location === "/about" ? "text-orange-600" : "text-slate-600"
                   }`}
                 >
                   About Us
@@ -186,7 +187,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/contact">
                 <span
                   className={`text-sm font-bold cursor-pointer ${
-                    location === "/contact" ? "text-orange-500" : "text-slate-600"
+                    location === "/contact" ? "text-orange-600" : "text-slate-600"
                   }`}
                 >
                   Contact Us
@@ -196,7 +197,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/auth">
                 <span
                   className={`text-sm font-bold cursor-pointer ${
-                    location === "/auth" ? "text-orange-500" : "text-slate-600"
+                    location === "/auth" ? "text-orange-600" : "text-slate-600"
                   }`}
                 >
                   Partner Login
@@ -207,7 +208,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <span
                   className={`text-sm font-bold flex items-center gap-2 cursor-pointer ${
                     location === "/partner" || location.startsWith("/partner/")
-                      ? "text-orange-500"
+                      ? "text-orange-600"
                       : "text-slate-600"
                   }`}
                 >
@@ -235,6 +236,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 alt="Logo"
                 width="180"
                 height="60"
+                style={{ aspectRatio: '180 / 60' }}
                 className="h-12 w-auto mx-auto md:mx-0"
               />
             </div>
@@ -244,14 +246,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <span className="block font-bold text-orange-500 mb-6 uppercase text-xs tracking-widest">
+            <span className="block font-bold text-orange-600 mb-6 uppercase text-xs tracking-widest">
               Quick Links
             </span>
             <ul className="space-y-4 text-sm font-medium">
               <li>
                 <button
                   onClick={handleComingSoon}
-                  className="hover:text-orange-500 cursor-pointer flex items-center gap-2 bg-transparent p-0 border-none font-medium text-slate-300 mx-auto md:mx-0"
+                  className="hover:text-orange-600 cursor-pointer flex items-center gap-2 bg-transparent p-0 border-none font-medium text-slate-300 mx-auto md:mx-0"
                 >
                   Bus Timetable
                   <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-500 rounded text-[10px] font-black uppercase animate-blink border border-amber-500/30">
@@ -261,14 +263,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </li>
               <li>
                 <Link href="/about">
-                  <span className="hover:text-orange-500 cursor-pointer">
+                  <span className="hover:text-orange-600 cursor-pointer">
                     About Us
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/contact">
-                  <span className="hover:text-orange-500 cursor-pointer">
+                  <span className="hover:text-orange-600 cursor-pointer">
                     Contact Us
                   </span>
                 </Link>
@@ -282,10 +284,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </h3>
             <div className="space-y-4 text-sm font-medium mb-6">
               <p className="flex items-center gap-2 justify-center md:justify-start">
-                <span className="text-orange-500">Owner:</span> {myName}
+                <span className="text-orange-600">Owner:</span> {myName}
               </p>
               <p className="flex items-center gap-2 justify-center md:justify-start">
-                <span className="text-orange-500">Email:</span> {myEmail}
+                <span className="text-orange-600">Email:</span> {myEmail}
               </p>
             </div>
             <a
