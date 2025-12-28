@@ -29,7 +29,9 @@ export default function Admin() {
 
   async function fetchStats() {
     try {
-      const res = await fetch("/api/admin/stats");
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/admin/stats", {
+        headers: { "x-user-id": "1" }
+      });
       if (!res.ok) return setVisitors(null);
       const d = await res.json();
       setVisitors(d.visitors ?? null);
@@ -40,7 +42,7 @@ export default function Admin() {
 
   async function fetchProducts() {
     try {
-      const res = await fetch("/api/products/all");
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/products/all");
       if (!res.ok) return setProducts([]);
       const d = await res.json();
       setProducts(d.data || d || []);
@@ -51,7 +53,7 @@ export default function Admin() {
 
   async function fetchOffers() {
     try {
-      const res = await fetch(`/api/admin/offers?t=${Date.now()}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/admin/offers?t=${Date.now()}`, {
         headers: { "x-user-id": "1" }
       });
       if (!res.ok) {
@@ -99,7 +101,9 @@ export default function Admin() {
 
   async function handleAddProduct() {
     try {
-      const url = isEditing ? `/api/products/${editingId}` : "/api/products";
+      const url = isEditing 
+        ? `https://shahdol-bazaar-v2.onrender.com/api/products/${editingId}` 
+        : "https://shahdol-bazaar-v2.onrender.com/api/products";
       const method = isEditing ? "PATCH" : "POST";
       
       const body = { ...newProduct, shopId: 1 };
@@ -145,7 +149,7 @@ export default function Admin() {
   async function handleDeleteProduct(id: number | string) {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/products/${id}`, {
         method: "DELETE",
         headers: { "x-user-id": "1" }
       });
@@ -160,7 +164,7 @@ export default function Admin() {
   async function handleAddOffer() {
     if (!newOffer.trim()) return;
     try {
-      const res = await fetch("/api/offers", {
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/offers", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-user-id": "1" },
         body: JSON.stringify({ content: newOffer, isActive: true })
@@ -186,7 +190,7 @@ export default function Admin() {
 
   async function handleToggleOffer(o: Offer) {
     try {
-      const res = await fetch(`/api/offers/${o.id}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/offers/${o.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-user-id": "1" },
         body: JSON.stringify({ isActive: !o.isActive })
@@ -203,7 +207,7 @@ export default function Admin() {
   async function handleDeleteOffer(id: number) {
     if (!confirm("Are you sure?")) return;
     try {
-      const res = await fetch(`/api/offers/${id}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/offers/${id}`, {
         method: "DELETE",
         headers: { "x-user-id": "1" }
       });

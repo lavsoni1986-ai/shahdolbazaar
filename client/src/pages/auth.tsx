@@ -77,7 +77,9 @@ export default function AuthPage() {
     console.log("🔵 Button Clicked! Data:", data); // Debugging
     setLoading(true);
     try {
-      const url = activeTab === "login" ? "/api/login" : "/api/register";
+      const url = activeTab === "login" 
+        ? "https://shahdol-bazaar-v2.onrender.com/api/login" 
+        : "https://shahdol-bazaar-v2.onrender.com/api/register";
       console.log("🔵 Calling API:", url); // Debugging
 
       const response = await fetch(url, {

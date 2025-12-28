@@ -1,11 +1,19 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 
 const app = express();
+
+// ✅ CORS FIX: Allow requests from the Netlify live site
+app.use(cors({
+  origin: ["https://shahdol-bazaar-live.netlify.app", "http://localhost:5173", "http://localhost:5000"],
+  credentials: true
+}));
+
 const httpServer = createServer(app);
 
 // CRITICAL: Request logging middleware - AFTER route registration

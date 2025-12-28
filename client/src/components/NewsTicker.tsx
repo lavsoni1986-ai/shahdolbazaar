@@ -11,7 +11,7 @@ export default function NewsTicker() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/offers')
+    fetch('https://shahdol-bazaar-v2.onrender.com/api/offers')
       .then(res => res.json())
       .then(data => {
         setOffers(Array.isArray(data) ? data : []);

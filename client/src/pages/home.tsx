@@ -146,7 +146,7 @@ export default function Home() {
       category: categoryForAPI,
     });
     
-    const url = `/api/products/all?${params.toString()}`;
+    const url = `https://shahdol-bazaar-v2.onrender.com/api/products/all?${params.toString()}`;
 
     try {
       const cacheBuster = `_t=${Date.now()}`;
@@ -206,7 +206,7 @@ export default function Home() {
   }, [query]);
 
   useEffect(() => {
-    fetch('/api/offers')
+    fetch('https://shahdol-bazaar-v2.onrender.com/api/offers')
       .then(res => res.json())
       .then(data => setOffers(data))
       .catch(err => console.error("Error fetching offers:", err));

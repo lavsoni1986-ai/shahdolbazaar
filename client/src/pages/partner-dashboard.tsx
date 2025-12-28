@@ -129,7 +129,7 @@ export default function PartnerDashboard() {
   const { data: shop, isLoading: shopLoading } = useQuery({
     queryKey: ["/api/partner/shop"],
     queryFn: async () => {
-      const res = await fetch("/api/partner/shop", { headers: authHeaders });
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/partner/shop", { headers: authHeaders });
       return res.ok ? res.json() : null;
     },
     enabled: !!user?.id, // Only fetch if user exists
@@ -162,8 +162,8 @@ export default function PartnerDashboard() {
       // Try to auto-create a default shop
       const createDefaultShop = async () => {
         try {
-          console.log("📞 Calling /api/partner/shop/create-default");
-          const res = await fetch("/api/partner/shop/create-default", {
+          console.log("📞 Calling https://shahdol-bazaar-v2.onrender.com/api/partner/shop/create-default");
+          const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/partner/shop/create-default", {
             method: "POST",
             headers: authHeaders,
           });
@@ -188,7 +188,7 @@ export default function PartnerDashboard() {
   const { data: products = [] } = useQuery({
     queryKey: ["/api/products", shop?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/products?shopId=${shop?.id}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/products?shopId=${shop?.id}`, {
         headers: authHeaders,
       });
       return res.json();
@@ -219,7 +219,10 @@ export default function PartnerDashboard() {
   const shopMutation = useMutation({
     mutationFn: async (data: any) => {
       const shopId = shop?.id;
-      const res = await fetch(shopId ? `/api/shops/${shopId}` : "/api/shops", {
+      const url = shopId 
+        ? `https://shahdol-bazaar-v2.onrender.com/api/shops/${shopId}` 
+        : "https://shahdol-bazaar-v2.onrender.com/api/shops";
+      const res = await fetch(url, {
         method: shopId ? "PATCH" : "POST",
         headers: authHeaders,
         body: JSON.stringify({ ...data, ownerId: user?.id }),
@@ -238,7 +241,7 @@ export default function PartnerDashboard() {
       if (!shop?.id) {
         throw new Error("Shop not found. Please set up your shop first.");
       }
-      const res = await fetch("/api/products", {
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/products", {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify({
@@ -270,7 +273,7 @@ export default function PartnerDashboard() {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/products/${id}`, {
         method: "DELETE",
         headers: authHeaders,
       });
