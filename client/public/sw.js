@@ -3,7 +3,8 @@ const CACHE_NAME = 'shahdolbazaar-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/favicon.png',
+  '/maskable_icon_x192.png',
+  '/maskable_icon_x512.png',
   '/logo.png'
 ];
 
