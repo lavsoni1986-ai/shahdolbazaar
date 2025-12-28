@@ -1,16 +1,16 @@
-import { createServer as createViteServer } from "vite";
 import type { Express } from "express";
 import type { Server } from "http";
-import path, { dirname } from "path";
+import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
-// ✅ ES MODULES FIX: __dirname manually banana padta hai
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// ✅ SAFE PATH FIX: Works in both local (ESM) and production (CJS) on Render
+const __dirname = path.resolve(process.cwd(), "server");
 
 export async function setupVite(app: Express, server: Server) {
-  const vite = await createViteServer({
+  // Dynamic import to avoid loading Vite in production
+  const { createServer } = await import("vite");
+  
+  const vite = await createServer({
     server: {
       middlewareMode: true,
       hmr: { server },
