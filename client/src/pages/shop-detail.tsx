@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 const fetchShop = async (id: string) => {
-  const res = await fetch(`/api/shops/${id}`);
+  const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/shops/${id}`);
   if (!res.ok) {
     throw new Error("Shop not found");
   }

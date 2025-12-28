@@ -138,7 +138,7 @@ export default function SellerOnboarding() {
 
       console.log('Sending payload:', payload);
 
-      const res = await fetch("/api/seller/apply", {
+      const res = await fetch("https://shahdol-bazaar-v2.onrender.com/api/seller/apply", {
         method: "POST",
         headers: authHeaders,
         body: JSON.stringify(payload),

@@ -36,7 +36,7 @@ type Shop = {
 };
 
 const fetchProduct = async (id: string): Promise<Product> => {
-  const res = await fetch(`/api/products/${id}`);
+  const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/products/${id}`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
     throw new Error(errorData.message || "Product not found");
@@ -45,7 +45,7 @@ const fetchProduct = async (id: string): Promise<Product> => {
 };
 
 const fetchShop = async (shopId: number): Promise<Shop> => {
-  const res = await fetch(`/api/shops/${shopId}`);
+  const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/shops/${shopId}`);
   if (!res.ok) {
     throw new Error("Shop not found");
   }

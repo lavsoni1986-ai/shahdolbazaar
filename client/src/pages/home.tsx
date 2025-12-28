@@ -214,7 +214,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      fetch('/api/metrics/visit', { method: 'POST' }).catch(() => {});
+      fetch('https://shahdol-bazaar-v2.onrender.com/api/metrics/visit', { method: 'POST' }).catch(() => {});
     } catch (e) {}
   }, []);
 

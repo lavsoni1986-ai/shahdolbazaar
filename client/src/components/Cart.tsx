@@ -21,7 +21,7 @@ interface CartProps {
 
 // Fetch shop details for phone number
 async function fetchShop(shopId: number) {
-  const res = await fetch(`/api/shops/${shopId}`);
+  const res = await fetch(`https://shahdol-bazaar-v2.onrender.com/api/shops/${shopId}`);
   if (!res.ok) return null;
   return res.json();
 }
